@@ -34,6 +34,7 @@
             --radius: 16px;
             --radius-sm: 10px;
             --transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+            --popup-red: #dc2626;
         }
         html { scroll-behavior: smooth; }
         body {
@@ -79,6 +80,51 @@
             text-transform: uppercase;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== RED POPUP ===== */
+        #redPopup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 99998;
+            background: var(--popup-red);
+            color: #fff;
+            padding: 12px 24px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            transform: translateY(-100%);
+            transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1);
+            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        #redPopup.show {
+            transform: translateY(0);
+        }
+        #redPopup a {
+            color: #fff;
+            font-weight: 700;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        #redPopup a:hover { opacity: 0.8; }
+        #redPopup .close-popup {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 8px;
+            opacity: 0.7;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+        #redPopup .close-popup:hover { opacity: 1; transform: scale(1.1); }
 
         /* ===== PASSWORD OVERLAY ===== */
         #passwordOverlay {
@@ -259,6 +305,7 @@
             justify-content: space-between;
             flex-shrink: 0;
             min-height: 60px;
+            margin-top: 0;
         }
         .top-navbar .brand {
             font-weight: 800;
@@ -899,6 +946,7 @@
             .sub-feature-list { grid-template-columns: 1fr; }
             .forgot-box { padding: 20px; }
             .password-box { padding: 28px 20px; }
+            #redPopup { font-size: 12px; padding: 10px 16px; }
         }
         @media (max-width: 480px) {
             .top-navbar .brand { font-size: 14px; }
@@ -912,6 +960,15 @@
 <div id="loadingScreen">
     <div class="loader-ring"></div>
     <div class="loader-text">Загрузка</div>
+</div>
+
+<!-- RED POPUP -->
+<div id="redPopup">
+    <span>
+        <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>
+        Отправьте обязательно (!) нам на почту <a href="mailto:eliaphan@mail.ru">eliaphan@mail.ru</a> ваш номер телефона и актуальную почту. В случае экстренных проблем с системой или вопросами, будем писать туда.
+    </span>
+    <button class="close-popup" onclick="closeRedPopup()">&times;</button>
 </div>
 
 <!-- PASSWORD OVERLAY -->
@@ -1009,7 +1066,7 @@
                     <div class="ym-input-icon-rub ym-display-none">
                         <input name="sum" placeholder="0.00" class="ym-input ym-sum-input ym-required-input" type="number" step="any" value="100">
                     </div>
-                    <button data-text="Заплатить" class="ym-btn-pay ym-result-price" style="flex:1;">
+                    <button data-text="Заплатить" class="ym-btn-pay ym-result-price" style="flex:1;" onclick="handlePaymentClick()">
                         <span class="ym-text-crop">Заплатить</span>
                         <span class="ym-price-output">100,00&nbsp;₽</span>
                     </button>
@@ -1440,6 +1497,33 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 
+// ===== RED POPUP =====
+function showRedPopup() {
+    const popup = document.getElementById('redPopup');
+    popup.classList.add('show');
+    // Store when popup was shown
+    state.popupShownAt = Date.now();
+    saveState();
+}
+
+function closeRedPopup() {
+    document.getElementById('redPopup').classList.remove('show');
+}
+
+function checkRedPopup() {
+    if (!state.popupShownAt) return;
+    const elapsed = Date.now() - state.popupShownAt;
+    const hours24 = 24 * 60 * 60 * 1000;
+    if (elapsed < hours24) {
+        document.getElementById('redPopup').classList.add('show');
+    } else {
+        document.getElementById('redPopup').classList.remove('show');
+        // Clean up
+        state.popupShownAt = null;
+        saveState();
+    }
+}
+
 // ===== DATA LAYER =====
 let state = {
     clients: [],
@@ -1454,6 +1538,7 @@ let state = {
     password: '',
     budget: 0,
     calcMemory: null,
+    popupShownAt: null,
     subscription: {
         active: false,
         startDate: null,
@@ -1481,6 +1566,7 @@ function loadState() {
                 else if (key === 'subscription') state.subscription = parsed.subscription || { active: false, startDate: null, expiryDate: null, type: null };
                 else if (key === 'selectedDate') state.selectedDate = parsed.selectedDate;
                 else if (key === 'calcMemory') state.calcMemory = parsed.calcMemory;
+                else if (key === 'popupShownAt') state.popupShownAt = parsed.popupShownAt;
             });
         }
     } catch(e) { console.warn('Failed to load state:', e); }
@@ -1533,6 +1619,32 @@ function openPaymentModal() {
 
 function closePaymentModal() {
     document.getElementById('paymentModal').classList.remove('show');
+}
+
+function handlePaymentClick() {
+    // Immediately activate subscription for 30 days
+    const now = new Date();
+    const expiry = new Date(now);
+    expiry.setDate(expiry.getDate() + 30);
+    state.subscription.active = true;
+    state.subscription.startDate = now.toISOString();
+    state.subscription.expiryDate = expiry.toISOString();
+    state.subscription.type = 'full';
+    
+    // Show red popup for 24 hours
+    state.popupShownAt = Date.now();
+    
+    saveState();
+    checkSubscription();
+    renderAll();
+    
+    // Show a quick notification
+    setTimeout(() => {
+        alert('✅ Подписка активирована! Все премиум-функции доступны в течение 30 дней.\n\n⚠️ Пожалуйста, отправьте нам на почту eliaphan@mail.ru ваш номер телефона и актуальную почту.');
+    }, 300);
+    
+    // The form will submit naturally to YooKassa
+    return true;
 }
 
 function activateSubscription() {
@@ -1610,6 +1722,9 @@ function checkSubscription() {
             if (planBadge) { planBadge.textContent = '🔓 FREE'; planBadge.className = 'plan-badge free'; }
         }
     }
+
+    // Check red popup
+    checkRedPopup();
 
     updateLockedFeatures(active);
     return active;
@@ -1714,6 +1829,7 @@ function resetAllData() {
     state.budget = 0; state.selectedDate = getToday();
     state.subscription = { active: false, startDate: null, expiryDate: null, type: null };
     state.calcMemory = null;
+    state.popupShownAt = null;
     saveState();
     closeForgotPassword();
     document.getElementById('passwordOverlay').classList.add('hidden');
@@ -2543,7 +2659,10 @@ function initApp() {
     // Check for payment success
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('payment') === 'success') {
-        activateSubscription();
+        // Already activated when clicked pay, but just in case
+        if (!isSubscriptionActive()) {
+            activateSubscription();
+        }
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
@@ -2581,7 +2700,9 @@ setInterval(() => {
 // ===== PAYMENT SUCCESS HANDLER =====
 window.addEventListener('message', function(e) {
     if (e.data && e.data.type === 'payment_success') {
-        activateSubscription();
+        if (!isSubscriptionActive()) {
+            activateSubscription();
+        }
         alert('✅ Подписка активирована! Все премиум-функции доступны в течение 30 дней.');
     }
 });
