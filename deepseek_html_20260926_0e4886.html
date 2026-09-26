@@ -1,0 +1,2362 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ильяфан — браузер</title>
+  <style>
+    @font-face {
+      font-family: 'TikTok Sans Local';
+      src: local('TikTok Sans'), local('TikTokSans-Regular'), local('TikTokSans');
+      font-weight: 100 900;
+      font-display: swap;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: 'TikTok Sans Local', 'TikTok Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background: #0a0a0a;
+      position: relative;
+      transition: background 0.5s ease;
+    }
+
+    body.anonymous-mode {
+      background: #000 !important;
+    }
+
+    body.anonymous-mode .browser-container {
+      background-image: none !important;
+      background: #000 !important;
+    }
+
+    /* Click catcher behind everything interactive */
+    .click-catcher {
+      position: fixed;
+      inset: 0;
+      bottom: 80px;
+      z-index: 1;
+      cursor: default;
+    }
+
+    .browser-container {
+      position: fixed;
+      inset: 0;
+      bottom: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transition: background 0.4s ease;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    /* ============ ANONYMOUS BANNER ============ */
+    .anon-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(90deg, #111, #222, #111);
+      color: #00ff88;
+      text-align: center;
+      padding: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      z-index: 900;
+      border-bottom: 1px solid #00ff8844;
+      text-shadow: 0 0 8px #00ff88;
+      transform: translateY(-100%);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+    }
+
+    .anon-banner.show { transform: translateY(0); }
+
+    /* Draggable group */
+    .drag-group {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: auto;
+      cursor: grab;
+      transition: box-shadow 0.2s, opacity 0.3s;
+      padding: 10px 20px;
+      border-radius: 40px;
+      touch-action: none;
+      margin-top: 2vh;
+    }
+
+    .drag-group:active { cursor: grabbing; }
+    .drag-group.dragging { box-shadow: 0 0 0 2px rgba(255,255,255,0.2); }
+
+    .browser-name {
+      font-size: clamp(2rem, 8vw, 5rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      text-shadow: 0 0 30px rgba(255,255,255,0.3);
+      cursor: text;
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      text-align: center;
+      padding: 0 10px;
+      outline: none;
+      border: none;
+      background: transparent;
+      border-bottom: 2px dashed transparent;
+      min-width: 100px;
+      white-space: nowrap;
+      overflow: visible;
+    }
+
+    .browser-name:focus {
+      border-bottom: 2px dashed rgba(255,255,255,0.4);
+      outline: none;
+      cursor: text;
+    }
+
+    .browser-name:hover {
+      transform: scale(1.01);
+      text-shadow: 0 0 40px rgba(255,255,255,0.5);
+    }
+
+    .browser-name.math-flash {
+      color: #ffd966 !important;
+      text-shadow: 0 0 50px rgba(255, 215, 0, 0.9), 0 0 100px rgba(255, 215, 0, 0.5);
+      transform: scale(1.08);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .browser-name.decoded {
+      color: #00ff88 !important;
+      text-shadow: 0 0 30px #00ff88, 0 0 60px #00ff88;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.1em;
+    }
+
+    .search-wrapper {
+      position: relative;
+      width: 90vw;
+      max-width: 720px;
+      margin-top: 2vh;
+      pointer-events: auto;
+    }
+
+    .search-container {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      background: #1e1e1e;
+      border-radius: 60px;
+      padding: 4px 6px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,255,255,0.05);
+      transition: box-shadow 0.4s ease, background 0.3s ease, transform 0.2s;
+      will-change: transform;
+    }
+
+    .search-container:focus-within {
+      box-shadow: 0 12px 40px rgba(0,0,0,0.9), 0 0 0 3px rgba(255,255,255,0.2);
+      background: #2a2a2a;
+      transform: scale(1.01);
+    }
+
+    .search-container.battery-low {
+      box-shadow: 0 0 20px 4px #ff3b3b, 0 0 0 3px #ff3b3b !important;
+      animation: pulse-red 1.5s infinite;
+    }
+
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 20px 2px #ff3b3b, 0 0 0 3px #ff3b3b; }
+      50% { box-shadow: 0 0 40px 10px #ff3b3b, 0 0 0 3px #ff3b3b; }
+      100% { box-shadow: 0 0 20px 2px #ff3b3b, 0 0 0 3px #ff3b3b; }
+    }
+
+    #searchInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 1.25rem;
+      padding: 14px 18px;
+      color: #fff;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+      caret-color: #fff;
+      min-width: 0;
+      position: relative;
+      z-index: 5;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    #searchInput::placeholder {
+      color: rgba(255,255,255,0.4);
+      font-weight: 400;
+    }
+
+    .char-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      border-radius: 60px;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      padding-left: 18px;
+      font-size: 1.25rem;
+      color: #fff;
+      font-weight: 500;
+      white-space: pre;
+      opacity: 0.3;
+      letter-spacing: 0.2px;
+    }
+
+    .math-hint {
+      position: absolute;
+      right: 100px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #aaa;
+      font-size: 1.1rem;
+      font-weight: 400;
+      pointer-events: none;
+      z-index: 4;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+      text-shadow: 0 0 8px rgba(0,0,0,0.8);
+    }
+
+    .star-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.8rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 8px;
+      color: #ffd966;
+      opacity: 0;
+      transform: scale(0.7);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: auto;
+      filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));
+      z-index: 15;
+      position: relative;
+    }
+
+    .star-btn.visible { opacity: 1; transform: scale(1); }
+    .star-btn:hover { transform: scale(1.2) rotate(10deg); filter: drop-shadow(0 0 12px gold); }
+
+    .anon-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-right: 8px;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 20;
+      position: relative;
+      flex-shrink: 0;
+      font-size: 1.2rem;
+      color: #fff;
+    }
+
+    .anon-btn:hover {
+      background: rgba(0, 255, 136, 0.2);
+      transform: scale(1.1);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+    }
+
+    .anon-btn.active {
+      background: #00ff88;
+      color: #000;
+      box-shadow: 0 0 25px #00ff88;
+      animation: anon-pulse 1.5s infinite;
+    }
+
+    @keyframes anon-pulse {
+      0%, 100% { box-shadow: 0 0 20px #00ff88; }
+      50% { box-shadow: 0 0 40px #00ff88, 0 0 60px #00ff88; }
+    }
+
+    /* Вкладки button */
+    .tabs-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(30,30,30,0.85);
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 40px;
+      padding: 12px 28px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: auto;
+      z-index: 50;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+      letter-spacing: 0.5px;
+    }
+
+    .tabs-btn:hover {
+      transform: translateY(-3px) scale(1.03);
+      background: rgba(50,50,50,0.95);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+      border-color: rgba(255,255,255,0.3);
+    }
+
+    .tabs-btn:active { transform: scale(0.97); }
+
+    /* History dropdown */
+    .history-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px) scale(0.95);
+      width: 90vw;
+      max-width: 500px;
+      background: rgba(20,20,20,0.98);
+      backdrop-filter: blur(25px);
+      border-radius: 28px;
+      border: 1px solid #444;
+      box-shadow: 0 30px 60px #000;
+      padding: 16px;
+      z-index: 500;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: auto;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    .history-dropdown.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 0 8px;
+    }
+
+    .history-header h4 { color: #fff; font-size: 1rem; font-weight: 600; }
+
+    .history-clear {
+      background: transparent;
+      border: 1px solid #555;
+      border-radius: 20px;
+      padding: 6px 14px;
+      color: #ff6b6b;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .history-clear:hover { background: #ff6b6b; color: #000; border-color: #ff6b6b; }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #ddd;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+
+    .history-item:hover { background: rgba(255,255,255,0.08); transform: translateX(4px); }
+
+    .history-item .h-favicon {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: #333; display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; flex-shrink: 0; color: #fff;
+    }
+
+    .history-item .h-text {
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .history-item .h-remove {
+      background: transparent; border: none; color: #888; font-size: 1.2rem;
+      cursor: pointer; padding: 4px 8px; border-radius: 10px; transition: all 0.2s; line-height: 1;
+    }
+
+    .history-item .h-remove:hover { color: #ff6b6b; background: rgba(255,107,107,0.15); }
+
+    .history-empty { text-align: center; color: #666; padding: 30px 20px; font-size: 0.9rem; }
+
+    /* ============ BOTTOM TAB BAR ============ */
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 12px 14px;
+      background: rgba(15,15,15,0.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      z-index: 800;
+      pointer-events: auto;
+    }
+
+    .tab-btn {
+      flex: 1;
+      max-width: 140px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 8px;
+      border-radius: 20px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      pointer-events: auto;
+    }
+
+    .tab-btn .tab-icon { font-size: 1.4rem; line-height: 1; transition: transform 0.3s; }
+
+    .tab-btn:hover { background: rgba(255,255,255,0.06); color: #ccc; transform: translateY(-3px); }
+
+    .tab-btn.active {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border-color: rgba(255,255,255,0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    .tab-btn.active .tab-icon { transform: scale(1.15); }
+
+    /* ============ PANELS ============ */
+    .panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 80px;
+      background: rgba(10,10,10,0.98);
+      backdrop-filter: blur(30px);
+      z-index: 750;
+      padding: 30px 20px;
+      overflow-y: auto;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(20px);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: auto;
+    }
+
+    .panel.show { opacity: 1; visibility: visible; transform: translateY(0); }
+
+    .panel-inner { max-width: 700px; margin: 0 auto; }
+
+    .panel h2 {
+      color: #fff; font-size: 1.8rem; font-weight: 700;
+      margin-bottom: 24px; letter-spacing: -0.02em;
+    }
+
+    .panel h3 { color: #fff; font-size: 1.1rem; font-weight: 600; margin: 20px 0 12px; }
+    .panel p { color: #aaa; font-size: 0.9rem; line-height: 1.5; margin-bottom: 12px; }
+
+    .panel-section {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.3s;
+    }
+
+    .panel-section:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); }
+
+    .panel-input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 20px;
+      border: 1px solid #444;
+      background: #111;
+      color: #fff;
+      outline: none;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .panel-input:focus {
+      border-color: #00ff88;
+      box-shadow: 0 0 0 3px rgba(0,255,136,0.15);
+    }
+
+    .panel-btn {
+      padding: 10px 22px;
+      border-radius: 30px;
+      border: none;
+      background: #fff;
+      color: #000;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      font-size: 0.9rem;
+      letter-spacing: 0.3px;
+    }
+
+    .panel-btn:hover { transform: scale(1.05); box-shadow: 0 8px 20px rgba(255,255,255,0.3); }
+    .panel-btn:active { transform: scale(0.97); }
+    .panel-btn.danger { background: #ff3b3b; color: #fff; }
+    .panel-btn.danger:hover { box-shadow: 0 8px 20px rgba(255,59,59,0.4); }
+    .panel-btn.green { background: #00ff88; color: #000; }
+    .panel-btn.green:hover { box-shadow: 0 8px 20px rgba(0,255,136,0.4); }
+    .panel-btn.ghost { background: transparent; border: 1px solid #555; color: #fff; }
+    .panel-btn.ghost:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+
+    .filter-list, .history-list-full {
+      display: flex; flex-direction: column; gap: 8px;
+      max-height: 300px; overflow-y: auto; margin-top: 10px;
+    }
+
+    .filter-item, .history-full-item {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.04);
+      border-radius: 16px; color: #ddd; font-size: 0.9rem;
+    }
+
+    .filter-item button, .history-full-item button {
+      background: transparent; border: none; color: #ff6b6b;
+      cursor: pointer; font-size: 1.1rem; padding: 2px 8px;
+      border-radius: 8px; transition: all 0.2s;
+    }
+
+    .filter-item button:hover, .history-full-item button:hover {
+      background: rgba(255,107,107,0.15);
+    }
+
+    .space-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 12px; margin-top: 12px;
+    }
+
+    .space-tile {
+      aspect-ratio: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 6px; cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      padding: 8px; text-align: center;
+    }
+
+    .space-tile:hover {
+      transform: translateY(-4px) scale(1.05);
+      background: rgba(255,255,255,0.1);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .space-tile .tile-icon { font-size: 1.8rem; }
+    .space-tile .tile-label {
+      font-size: 0.7rem; color: #aaa; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+    }
+
+    .empty-state {
+      text-align: center; color: #666; padding: 40px 20px;
+      font-size: 0.95rem; line-height: 1.6;
+    }
+
+    .empty-state .big { font-size: 3rem; margin-bottom: 12px; display: block; }
+
+    /* PIN Modal */
+    .pin-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+      backdrop-filter: blur(30px); display: flex; align-items: center;
+      justify-content: center; z-index: 2000; padding: 20px;
+      opacity: 0; visibility: hidden; transition: all 0.4s;
+      pointer-events: auto;
+    }
+
+    .pin-modal.show { opacity: 1; visibility: visible; }
+
+    .pin-box {
+      background: #1a1a1a; border-radius: 32px; padding: 40px 30px;
+      max-width: 360px; width: 100%; text-align: center;
+      border: 1px solid #333; box-shadow: 0 30px 80px #000;
+    }
+
+    .pin-box h3 { color: #fff; font-size: 1.3rem; margin-bottom: 8px; font-weight: 700; }
+    .pin-box p { color: #888; font-size: 0.85rem; margin-bottom: 20px; }
+
+    .pin-display { display: flex; justify-content: center; gap: 10px; margin-bottom: 24px; }
+    .pin-dot {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #333; transition: all 0.2s;
+    }
+    .pin-dot.filled {
+      background: #00ff88; box-shadow: 0 0 12px #00ff88; transform: scale(1.15);
+    }
+
+    .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+    .pin-key {
+      aspect-ratio: 1; background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+      color: #fff; font-size: 1.3rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+
+    .pin-key:hover { background: rgba(255,255,255,0.15); transform: scale(1.05); }
+    .pin-key:active { transform: scale(0.95); background: #00ff88; color: #000; }
+
+    .pin-error { color: #ff3b3b; font-size: 0.85rem; margin-top: 12px; min-height: 20px; }
+
+    /* Leave modal */
+    .leave-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+      backdrop-filter: blur(30px); display: flex; align-items: center;
+      justify-content: center; z-index: 2500; padding: 20px;
+      opacity: 0; visibility: hidden; transition: all 0.4s;
+      pointer-events: auto;
+    }
+
+    .leave-modal.show { opacity: 1; visibility: visible; }
+
+    .leave-box {
+      background: #1a1a1a; border-radius: 32px; padding: 36px 28px;
+      max-width: 460px; width: 100%; border: 1px solid #333;
+      box-shadow: 0 30px 80px #000; text-align: center;
+    }
+
+    .leave-box h3 { color: #fff; font-size: 1.4rem; margin-bottom: 18px; font-weight: 700; }
+
+    .leave-benefits { text-align: left; margin: 0 auto 24px; max-width: 340px; }
+
+    .leave-benefits li {
+      color: #ccc; font-size: 0.95rem; padding: 8px 0;
+      list-style: none; display: flex; align-items: flex-start;
+      gap: 10px; line-height: 1.4;
+    }
+
+    .leave-benefits li::before { content: '✓'; color: #00ff88; font-weight: 700; flex-shrink: 0; }
+
+    .leave-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+
+    .leave-final { color: #fff; font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
+    .leave-sub { color: #aaa; font-size: 0.85rem; margin-bottom: 16px; line-height: 1.5; }
+
+    .yandex-go-btn {
+      display: inline-block; background: #fc3f1d; color: #fff;
+      text-decoration: none; padding: 14px 32px; border-radius: 40px;
+      font-weight: 700; font-size: 1rem; transition: all 0.3s;
+      margin-top: 8px; box-shadow: 0 8px 25px rgba(252,63,29,0.4);
+    }
+
+    .yandex-go-btn:hover { transform: scale(1.05); box-shadow: 0 12px 35px rgba(252,63,29,0.6); }
+
+    .contact-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 30px; padding: 14px 28px; color: #fff;
+      text-decoration: none; font-weight: 600; font-size: 0.95rem;
+      transition: all 0.3s; cursor: pointer;
+    }
+
+    .contact-btn:hover {
+      background: rgba(255,255,255,0.12); transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    /* Custom widgets */
+    .custom-widgets-layer {
+      position: fixed; inset: 0; pointer-events: none; z-index: 150;
+      bottom: 80px;
+    }
+
+    .custom-widget { position: absolute; pointer-events: auto; cursor: grab; }
+    .custom-widget:active { cursor: grabbing; }
+    .custom-widget.dragging { filter: drop-shadow(0 10px 30px rgba(0,0,0,0.8)); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 100px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(30,30,30,0.97); backdrop-filter: blur(20px);
+      color: #fff; padding: 14px 28px; border-radius: 40px;
+      font-size: 0.95rem; font-weight: 500; z-index: 3000;
+      opacity: 0; visibility: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 1px solid #444; box-shadow: 0 20px 40px #000;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1; visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Dock */
+    .dock {
+      position: fixed; left: 24px; bottom: 90px;
+      display: flex; flex-direction: column; gap: 12px;
+      z-index: 200; pointer-events: auto;
+    }
+
+    .dock-item {
+      width: 56px; height: 56px; border-radius: 20px;
+      background: rgba(30,30,30,0.8); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; font-weight: 300; color: #fff;
+      cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+      user-select: none;
+    }
+
+    .dock-item:hover {
+      transform: scale(1.1) translateY(-4px);
+      background: rgba(60,60,60,0.9);
+      border-color: rgba(255,255,255,0.3);
+    }
+
+    /* Edit button */
+    .edit-btn {
+      position: fixed; right: 24px; bottom: 90px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #fff; color: #000; border: none;
+      font-size: 1.6rem; display: flex;
+      align-items: center; justify-content: center;
+      cursor: pointer; box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 300; pointer-events: auto;
+    }
+
+    .edit-btn:hover {
+      transform: scale(1.1) rotate(15deg);
+      box-shadow: 0 0 40px rgba(255,255,255,0.6);
+    }
+
+    /* Edit panel */
+    .edit-panel {
+      position: fixed; right: 24px; bottom: 160px;
+      width: 340px; background: rgba(20,20,20,0.97);
+      backdrop-filter: blur(20px); border-radius: 32px;
+      padding: 24px; border: 1px solid #444;
+      box-shadow: 0 30px 60px #000; color: #fff;
+      display: flex; flex-direction: column; gap: 14px;
+      z-index: 400; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transform-origin: bottom right; pointer-events: auto;
+      max-height: 70vh; overflow-y: auto;
+    }
+
+    .edit-panel.hidden {
+      opacity: 0; visibility: hidden;
+      transform: scale(0.8) translateY(20px);
+      pointer-events: none;
+    }
+
+    .edit-panel h3 { font-weight: 600; font-size: 1.1rem; color: #fff; }
+    .edit-row { display: flex; flex-direction: column; gap: 6px; }
+    .edit-row label { font-size: 0.8rem; color: #aaa; font-weight: 500; }
+
+    .edit-row input[type="color"] {
+      width: 100%; height: 36px; border-radius: 18px;
+      border: 1px solid #444; background: transparent; cursor: pointer;
+    }
+
+    .edit-row input[type="text"], .edit-row textarea {
+      padding: 10px 14px; border-radius: 18px;
+      border: 1px solid #444; background: #111; color: #fff;
+      outline: none; font-size: 0.9rem;
+      user-select: text; -webkit-user-select: text;
+      resize: vertical;
+    }
+
+    .edit-row textarea {
+      min-height: 80px; font-family: 'Courier New', monospace; font-size: 0.8rem;
+    }
+
+    .edit-row input[type="file"] {
+      padding: 8px; border-radius: 18px;
+      border: 1px solid #444; background: #111;
+      color: #aaa; font-size: 0.8rem; cursor: pointer;
+    }
+
+    .edit-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .edit-actions button {
+      flex: 1; padding: 10px; border-radius: 25px;
+      border: none; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; font-size: 0.85rem;
+    }
+
+    .done-btn { background: #fff; color: #000; }
+    .done-btn:hover { background: #ddd; transform: scale(1.02); }
+    .reset-btn { background: #333; color: #fff; }
+    .reset-btn:hover { background: #555; }
+
+    /* Welcome overlay */
+    .welcome-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+      backdrop-filter: blur(20px); display: flex;
+      flex-direction: column; align-items: center;
+      justify-content: center; z-index: 1000; padding: 20px;
+      text-align: center; pointer-events: auto;
+      transition: opacity 0.6s ease, visibility 0.6s;
+    }
+
+    .welcome-overlay.hidden {
+      opacity: 0; visibility: hidden; pointer-events: none;
+    }
+
+    .welcome-box {
+      max-width: 560px; background: #1a1a1a;
+      border-radius: 48px; padding: 44px 30px;
+      box-shadow: 0 30px 80px #000; border: 1px solid #333;
+    }
+
+    .welcome-box h2 { color: #fff; font-size: 1.9rem; margin-bottom: 20px; font-weight: 700; }
+    .welcome-box p { color: #ccc; font-size: 1.05rem; line-height: 1.6; margin-bottom: 16px; }
+
+    .legal-link {
+      color: #fff; text-decoration: underline; cursor: pointer;
+      font-weight: 500; transition: all 0.2s; display: inline-block; margin: 8px 0;
+    }
+
+    .legal-link:hover { color: #ffd966; text-shadow: 0 0 20px gold; }
+
+    .agree-btn {
+      background: #fff; color: #000; border: none;
+      border-radius: 60px; padding: 16px 44px;
+      font-size: 1.1rem; font-weight: 700; margin-top: 28px;
+      cursor: pointer; transition: all 0.3s; letter-spacing: 0.5px;
+    }
+
+    .agree-btn:hover { transform: scale(1.05); box-shadow: 0 0 50px rgba(255,255,255,0.7); }
+
+    /* Legal modal */
+    .legal-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(10px); display: flex;
+      align-items: center; justify-content: center;
+      z-index: 2000; pointer-events: auto; padding: 20px;
+      opacity: 1; visibility: visible; transition: all 0.3s;
+    }
+
+    .legal-modal.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .legal-content {
+      background: #1e1e1e; border-radius: 32px; padding: 32px;
+      max-width: 600px; width: 100%; max-height: 80vh;
+      overflow-y: auto; position: relative; border: 1px solid #444;
+      color: #ccc; font-size: 0.95rem; line-height: 1.6;
+      box-shadow: 0 40px 100px #000;
+    }
+
+    .legal-content h3 { color: #fff; margin-bottom: 16px; font-weight: 700; font-size: 1.4rem; }
+    .legal-content p { margin-bottom: 12px; }
+
+    .close-modal {
+      position: absolute; top: 20px; right: 24px;
+      background: transparent; border: none; color: #fff;
+      font-size: 2rem; cursor: pointer; transition: transform 0.2s; line-height: 1;
+    }
+
+    .close-modal:hover { transform: rotate(90deg) scale(1.2); color: #ff6b6b; }
+
+    /* Summary popup */
+    .summary-popup {
+      position: fixed; bottom: 120px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(20,20,20,0.97); backdrop-filter: blur(20px);
+      border-radius: 28px; padding: 24px; max-width: 500px;
+      width: 90%; color: #fff; border: 1px solid #444;
+      box-shadow: 0 30px 60px #000; z-index: 500;
+      opacity: 0; visibility: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      font-size: 1rem; line-height: 1.6; pointer-events: auto;
+    }
+
+    .summary-popup.show {
+      opacity: 1; visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .summary-popup .close-summary {
+      position: absolute; top: 12px; right: 18px;
+      background: none; border: none; color: #aaa;
+      font-size: 1.5rem; cursor: pointer;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #666; }
+  </style>
+</head>
+<body>
+  <div class="click-catcher" id="clickCatcher"></div>
+
+  <div class="anon-banner" id="anonBanner">🔒 АНОНИМНЫЙ РЕЖИМ · ИСТОРИЯ НЕ СОХРАНЯЕТСЯ</div>
+
+  <div class="custom-widgets-layer" id="customWidgetsLayer"></div>
+
+  <div class="browser-container" id="browserContainer">
+    <div class="drag-group" id="dragGroup">
+      <div class="browser-name" id="browserName" contenteditable="true" spellcheck="false">ильяфан</div>
+      <div class="search-wrapper" id="searchWrapper">
+        <div class="search-container" id="searchContainer">
+          <input type="text" id="searchInput" placeholder="Введите запрос или уравнение..." autocomplete="off" spellcheck="false">
+          <div class="char-layer" id="charLayer"></div>
+          <div class="math-hint" id="mathHint"></div>
+          <button class="star-btn" id="starBtn" title="Краткая справка из Википедии">★</button>
+          <button class="anon-btn" id="anonBtn" title="Анонимный режим">◈</button>
+        </div>
+      </div>
+      <button class="tabs-btn" id="tabsBtn">📑 Вкладки</button>
+      <div class="history-dropdown" id="historyDropdown">
+        <div class="history-header">
+          <h4>Последние 10 сайтов</h4>
+          <button class="history-clear" id="historyClearBtn">Очистить</button>
+        </div>
+        <div id="historyList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dock" id="dock">
+    <div class="dock-item" data-slot="0" title="Назначить сайт">+</div>
+    <div class="dock-item" data-slot="1" title="Назначить сайт">+</div>
+    <div class="dock-item" data-slot="2" title="Назначить сайт">+</div>
+  </div>
+
+  <button class="edit-btn" id="editBtn">✎</button>
+
+  <div class="edit-panel hidden" id="editPanel">
+    <h3>Настройки</h3>
+    <div class="edit-row">
+      <label>Цвет поисковой строки</label>
+      <input type="color" id="searchColor" value="#1e1e1e">
+    </div>
+    <div class="edit-row">
+      <label>Цвет имени браузера</label>
+      <input type="color" id="nameColor" value="#ffffff">
+    </div>
+    <div class="edit-row">
+      <label>Обои (загрузить изображение)</label>
+      <input type="file" id="wallpaperFile" accept="image/*">
+    </div>
+    <div class="edit-row">
+      <label>Ссылка для слота 1</label>
+      <input type="text" id="slot0Url" placeholder="https://example.com">
+    </div>
+    <div class="edit-row">
+      <label>Ссылка для слота 2</label>
+      <input type="text" id="slot1Url" placeholder="https://example.com">
+    </div>
+    <div class="edit-row">
+      <label>Ссылка для слота 3</label>
+      <input type="text" id="slot2Url" placeholder="https://example.com">
+    </div>
+    <div class="edit-row">
+      <label>Кастомный поиск (например: yo=https://youtube.com)</label>
+      <input type="text" id="customSearchInput" placeholder="yo=https://youtube.com">
+    </div>
+    <div class="edit-actions">
+      <button class="reset-btn" id="resetPosBtn">Сбросить</button>
+      <button class="done-btn" id="doneEditBtn">Готово</button>
+    </div>
+  </div>
+
+  <!-- Me panel -->
+  <div class="panel" id="mePanel">
+    <div class="panel-inner">
+      <h2>👤 Моё</h2>
+
+      <div class="panel-section">
+        <h3>🚫 Фильтрация</h3>
+        <p>Добавьте сайты или слова, которые браузер будет блокировать при поиске.</p>
+        <input type="text" class="panel-input" id="filterInput" placeholder="Например: spam.com или слово">
+        <button class="panel-btn danger" id="addFilterBtn">Добавить фильтр</button>
+        <div class="filter-list" id="filterList"></div>
+      </div>
+
+      <div class="panel-section">
+        <h3>📜 Моя история поиска</h3>
+        <p>Здесь сохраняются все ваши запросы (кроме анонимного режима).</p>
+        <button class="panel-btn danger" id="clearHistoryBtn">Очистить всю историю</button>
+        <div class="history-list-full" id="fullHistoryList"></div>
+      </div>
+
+      <div class="panel-section">
+        <h3>🏠 Моё пространство</h3>
+        <p>Ваши самые посещаемые сайты. Автоматически формируется на основе истории.</p>
+        <div id="mySpaceContainer"></div>
+      </div>
+
+      <div class="panel-section">
+        <h3>🔐 Защита</h3>
+        <p>Требовать PIN-код для входа в браузер и для доступа к определённым сайтам.</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <button class="panel-btn green" id="setPinBtn">Установить PIN</button>
+          <button class="panel-btn ghost" id="removePinBtn">Удалить PIN</button>
+        </div>
+        <div style="margin-top:14px;">
+          <label style="color:#aaa;font-size:0.85rem;display:block;margin-bottom:6px;">Заблокированные сайты (требуют PIN):</label>
+          <input type="text" class="panel-input" id="blockedSiteInput" placeholder="https://example.com">
+          <button class="panel-btn danger" id="addBlockedBtn">Добавить сайт</button>
+          <div class="filter-list" id="blockedList"></div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h3 style="color:#ff6b6b;">🚪 Ухожу</h3>
+        <p>Если вы хотите покинуть наш браузер — мы покажем, что вы теряете.</p>
+        <button class="panel-btn danger" id="leaveBtn">Ухожу</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Other panel -->
+  <div class="panel" id="otherPanel">
+    <div class="panel-inner">
+      <h2>🔧 Другое</h2>
+
+      <div class="panel-section">
+        <h3>✉️ Связаться с нами</h3>
+        <p>Есть вопросы, предложения или проблемы? Напишите нам.</p>
+        <a href="mailto:support@eliaphan.ru" class="contact-btn" style="margin-top:10px;">
+          📧 support@eliaphan.ru
+        </a>
+      </div>
+
+      <div class="panel-section">
+        <h3>🧩 Добавлю сам</h3>
+        <p>Создайте свой HTML-виджет, который появится на главном экране. Вставьте код ниже — он станет кнопкой или блоком, который можно перетаскивать.</p>
+        <textarea class="panel-input" id="customHtmlInput" placeholder="<button onclick=&quot;alert('Привет!')&quot;>Моя кнопка</button>"></textarea>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="panel-btn green" id="addCustomWidgetBtn">Добавить виджет</button>
+          <button class="panel-btn ghost" id="clearWidgetsBtn">Удалить все виджеты</button>
+        </div>
+        <p style="margin-top:10px;font-size:0.8rem;color:#888;">Совет: виджеты можно перетаскивать по экрану. Двойной клик — удалить.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom tab bar -->
+  <div class="tab-bar" id="tabBar">
+    <button class="tab-btn active" data-tab="main" id="tabMain">
+      <span class="tab-icon">🏠</span>
+      <span>Главная</span>
+    </button>
+    <button class="tab-btn" data-tab="me" id="tabMe">
+      <span class="tab-icon">👤</span>
+      <span>Моё</span>
+    </button>
+    <button class="tab-btn" data-tab="other" id="tabOther">
+      <span class="tab-icon">🔧</span>
+      <span>Другое</span>
+    </button>
+  </div>
+
+  <div class="summary-popup" id="summaryPopup">
+    <button class="close-summary" id="closeSummary">×</button>
+    <div id="summaryText">Загрузка...</div>
+  </div>
+
+  <div class="pin-modal" id="pinModal">
+    <div class="pin-box">
+      <h3 id="pinTitle">Введите PIN</h3>
+      <p id="pinSubtitle">Введите 4-значный код</p>
+      <div class="pin-display" id="pinDisplay">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+      <div class="pin-keypad" id="pinKeypad"></div>
+      <div class="pin-error" id="pinError"></div>
+      <button class="panel-btn ghost" id="pinCancelBtn" style="margin-top:14px;">Отмена</button>
+    </div>
+  </div>
+
+  <div class="leave-modal" id="leaveModal">
+    <div class="leave-box" id="leaveBox">
+      <h3>Подожди! Ты уверен?</h3>
+      <ul class="leave-benefits">
+        <li>Полная приватность — никакие данные не уходят на сторонние серверы</li>
+        <li>Анонимный режим с декодированием имени</li>
+        <li>Кастомизация интерфейса: цвета, обои, перетаскивание</li>
+        <li>Собственные HTML-виджеты на главном экране</li>
+        <li>Защита PIN-кодом и фильтрация контента</li>
+        <li>Локальное хранение — всё остаётся у тебя</li>
+      </ul>
+      <div class="leave-actions">
+        <button class="panel-btn green" id="stayBtn">Остаться</button>
+        <button class="panel-btn danger" id="leaveAnywayBtn">Всё равно уйти</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="welcome-overlay" id="welcomeOverlay">
+    <div class="welcome-box">
+      <h2>Добро пожаловать!</h2>
+      <p>Продолжая, вы даете согласие на <span class="legal-link" id="legalLink">правила сервиса и Политику Конфедициальности</span>.</p>
+      <button class="agree-btn" id="agreeBtn">Согласен</button>
+    </div>
+  </div>
+
+  <div class="legal-modal hidden" id="legalModal">
+    <div class="legal-content">
+      <button class="close-modal" id="closeLegalBtn">×</button>
+      <h3>Правила сервиса и Политика Конфедициальности</h3>
+      <p><strong>Eliaphan</strong> не получает доступ к вашим данным самостоятельно. Все данные обрабатываются локально в вашем браузере и не передаются на не-российские серверы.</p>
+      <p>Использование браузера не должно нарушать законодательство Российской Федерации. Пользователь несёт ответственность за содержание своих запросов.</p>
+      <p>Если пользователь публикует любые материалы об этом браузере (онлайн или офлайн), браузер имеет право потребовать удаления таких материалов и может прибегнуть к юридическим действиям, за исключением случаев обзоров и рецензий.</p>
+      <p>Браузер предназначен для лиц 18 лет и старше.</p>
+      <p>Все поисковые запросы обрабатываются через API Яндекса, соответствующее российскому законодательству.</p>
+      <p>Нажимая «Согласен», вы подтверждаете, что ознакомились с данными условиями.</p>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      'use strict';
+
+      // ==================== DOM ====================
+      const browserName = document.getElementById('browserName');
+      const searchInput = document.getElementById('searchInput');
+      const searchContainer = document.getElementById('searchContainer');
+      const dragGroup = document.getElementById('dragGroup');
+      const starBtn = document.getElementById('starBtn');
+      const anonBtn = document.getElementById('anonBtn');
+      const charLayer = document.getElementById('charLayer');
+      const mathHint = document.getElementById('mathHint');
+      const clickCatcher = document.getElementById('clickCatcher');
+      const browserContainer = document.getElementById('browserContainer');
+      const dockItems = document.querySelectorAll('.dock-item');
+      const editBtn = document.getElementById('editBtn');
+      const editPanel = document.getElementById('editPanel');
+      const doneEditBtn = document.getElementById('doneEditBtn');
+      const resetPosBtn = document.getElementById('resetPosBtn');
+      const searchColor = document.getElementById('searchColor');
+      const nameColor = document.getElementById('nameColor');
+      const wallpaperFile = document.getElementById('wallpaperFile');
+      const slot0Url = document.getElementById('slot0Url');
+      const slot1Url = document.getElementById('slot1Url');
+      const slot2Url = document.getElementById('slot2Url');
+      const customSearchInput = document.getElementById('customSearchInput');
+      const summaryPopup = document.getElementById('summaryPopup');
+      const summaryText = document.getElementById('summaryText');
+      const closeSummary = document.getElementById('closeSummary');
+      const welcomeOverlay = document.getElementById('welcomeOverlay');
+      const agreeBtn = document.getElementById('agreeBtn');
+      const legalLink = document.getElementById('legalLink');
+      const legalModal = document.getElementById('legalModal');
+      const closeLegalBtn = document.getElementById('closeLegalBtn');
+      const toast = document.getElementById('toast');
+      const anonBanner = document.getElementById('anonBanner');
+      const tabsBtn = document.getElementById('tabsBtn');
+      const historyDropdown = document.getElementById('historyDropdown');
+      const historyList = document.getElementById('historyList');
+      const historyClearBtn = document.getElementById('historyClearBtn');
+      const tabMain = document.getElementById('tabMain');
+      const tabMe = document.getElementById('tabMe');
+      const tabOther = document.getElementById('tabOther');
+      const mePanel = document.getElementById('mePanel');
+      const otherPanel = document.getElementById('otherPanel');
+      const filterInput = document.getElementById('filterInput');
+      const addFilterBtn = document.getElementById('addFilterBtn');
+      const filterList = document.getElementById('filterList');
+      const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+      const fullHistoryList = document.getElementById('fullHistoryList');
+      const mySpaceContainer = document.getElementById('mySpaceContainer');
+      const setPinBtn = document.getElementById('setPinBtn');
+      const removePinBtn = document.getElementById('removePinBtn');
+      const blockedSiteInput = document.getElementById('blockedSiteInput');
+      const addBlockedBtn = document.getElementById('addBlockedBtn');
+      const blockedList = document.getElementById('blockedList');
+      const leaveBtn = document.getElementById('leaveBtn');
+      const pinModal = document.getElementById('pinModal');
+      const pinTitle = document.getElementById('pinTitle');
+      const pinSubtitle = document.getElementById('pinSubtitle');
+      const pinDisplay = document.getElementById('pinDisplay');
+      const pinKeypad = document.getElementById('pinKeypad');
+      const pinError = document.getElementById('pinError');
+      const pinCancelBtn = document.getElementById('pinCancelBtn');
+      const leaveModal = document.getElementById('leaveModal');
+      const leaveBox = document.getElementById('leaveBox');
+      const customHtmlInput = document.getElementById('customHtmlInput');
+      const addCustomWidgetBtn = document.getElementById('addCustomWidgetBtn');
+      const clearWidgetsBtn = document.getElementById('clearWidgetsBtn');
+      const customWidgetsLayer = document.getElementById('customWidgetsLayer');
+
+      // ==================== STATE ====================
+      let dockUrls = ['', '', ''];
+      let dragPos = { x: 0, y: 0 };
+      let isDragging = false;
+      let dragStart = { x: 0, y: 0 };
+      let dragMoved = false;
+      let dragStartedOnName = false;
+      let originalBrowserName = 'ильяфан';
+      let mathFlashTimeout = null;
+      let isEditingName = false;
+      let anonymousMode = false;
+      let history = [];
+      let filters = [];
+      let blockedSites = [];
+      let pinCode = null;
+      let customSearchMappings = {};
+      let customWidgets = [];
+      let pinMode = null;
+      let pinBuffer = '';
+      let pinCallback = null;
+      let nameDecodeInterval = null;
+      let savedWallpaper = '';
+      let savedSearchColor = '#1e1e1e';
+      let savedNameColor = '#ffffff';
+      let currentTab = 'main';
+
+      // ==================== HELPERS ====================
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toast._timeout);
+        toast._timeout = setTimeout(() => toast.classList.remove('show'), 2200);
+      }
+
+      function escapeHtml(s) {
+        const div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+      }
+
+      function getDomain(url) {
+        try { return new URL(url).hostname.replace('www.', ''); } catch { return url; }
+      }
+
+      // ==================== LOCALSTORAGE ====================
+      function saveState() {
+        try {
+          const state = {
+            browserName: originalBrowserName,
+            searchColor: savedSearchColor,
+            nameColor: savedNameColor,
+            dragPos: dragPos,
+            wallpaper: savedWallpaper,
+            dockUrls: dockUrls,
+            history: history.slice(0, 100),
+            filters: filters,
+            blockedSites: blockedSites,
+            pinCode: pinCode,
+            customSearchMappings: customSearchMappings,
+            customWidgets: customWidgets
+          };
+          localStorage.setItem('ilyafan_state_v4', JSON.stringify(state));
+        } catch(e) { console.warn('save error', e); }
+      }
+
+      function loadState() {
+        const raw = localStorage.getItem('ilyafan_state_v4') || localStorage.getItem('ilyafan_state_v3');
+        if (!raw) return;
+        try {
+          const state = JSON.parse(raw);
+          if (state.browserName) {
+            originalBrowserName = state.browserName;
+            browserName.textContent = originalBrowserName;
+          }
+          if (state.searchColor) {
+            savedSearchColor = state.searchColor;
+            searchColor.value = state.searchColor;
+            searchContainer.style.backgroundColor = state.searchColor;
+          }
+          if (state.nameColor) {
+            savedNameColor = state.nameColor;
+            nameColor.value = state.nameColor;
+            browserName.style.color = state.nameColor;
+          }
+          if (state.dragPos) {
+            dragPos = state.dragPos;
+            dragGroup.style.transform = `translate(${dragPos.x}px, ${dragPos.y}px)`;
+          }
+          if (state.wallpaper) {
+            savedWallpaper = state.wallpaper;
+            browserContainer.style.backgroundImage = state.wallpaper;
+          }
+          if (state.dockUrls) { dockUrls = state.dockUrls; updateDockDisplay(); }
+          if (state.history) history = state.history;
+          if (state.filters) filters = state.filters;
+          if (state.blockedSites) blockedSites = state.blockedSites;
+          if (state.pinCode) pinCode = state.pinCode;
+          if (state.customSearchMappings) customSearchMappings = state.customSearchMappings;
+          if (state.customWidgets) { customWidgets = state.customWidgets; }
+        } catch(e) { console.warn('load error', e); }
+      }
+
+      function updateDockDisplay() {
+        dockItems.forEach((item, i) => {
+          if (dockUrls[i]) {
+            item.textContent = '🌐';
+            item.title = dockUrls[i];
+          } else {
+            item.textContent = '+';
+            item.title = 'Назначить сайт';
+          }
+        });
+      }
+
+      // ==================== BATTERY ====================
+      function checkBattery() {
+        if (navigator.getBattery) {
+          navigator.getBattery().then(battery => {
+            function update() {
+              if (battery.level <= 0.15 && !battery.charging) {
+                searchContainer.classList.add('battery-low');
+              } else {
+                searchContainer.classList.remove('battery-low');
+              }
+            }
+            update();
+            battery.addEventListener('levelchange', update);
+            battery.addEventListener('chargingchange', update);
+          }).catch(()=>{});
+        }
+      }
+      checkBattery();
+
+      // ==================== ANONYMOUS MODE ====================
+      const DECODE_CHARS = '#$?!_+*&^%№@~<>{}[]|/\\';
+      function startNameDecode() {
+        if (nameDecodeInterval) clearInterval(nameDecodeInterval);
+        const target = originalBrowserName;
+        nameDecodeInterval = setInterval(() => {
+          let result = '';
+          for (let i = 0; i < target.length; i++) {
+            if (Math.random() > 0.3) {
+              result += DECODE_CHARS[Math.floor(Math.random() * DECODE_CHARS.length)];
+            } else {
+              result += target[i];
+            }
+          }
+          browserName.textContent = result;
+        }, 80);
+      }
+      function stopNameDecode() {
+        if (nameDecodeInterval) { clearInterval(nameDecodeInterval); nameDecodeInterval = null; }
+        browserName.classList.remove('decoded');
+        browserName.textContent = originalBrowserName;
+      }
+
+      function toggleAnonymous() {
+        anonymousMode = !anonymousMode;
+        if (anonymousMode) {
+          anonBtn.classList.add('active');
+          document.body.classList.add('anonymous-mode');
+          anonBanner.classList.add('show');
+          browserName.classList.add('decoded');
+          startNameDecode();
+          showToast('🔒 Анонимный режим включён');
+        } else {
+          anonBtn.classList.remove('active');
+          document.body.classList.remove('anonymous-mode');
+          anonBanner.classList.remove('show');
+          stopNameDecode();
+          showToast('🔓 Анонимный режим выключен');
+        }
+      }
+
+      // Use direct event listener - no stopPropagation issues
+      anonBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleAnonymous();
+      });
+
+      // ==================== WELCOME ====================
+      if (!localStorage.getItem('ilyafan_welcome_seen')) {
+        welcomeOverlay.style.display = 'flex';
+      } else {
+        welcomeOverlay.style.display = 'none';
+      }
+
+      agreeBtn.addEventListener('click', () => {
+        welcomeOverlay.classList.add('hidden');
+        setTimeout(() => { welcomeOverlay.style.display = 'none'; }, 600);
+        localStorage.setItem('ilyafan_welcome_seen', 'true');
+      });
+
+      legalLink.addEventListener('click', (e) => { e.stopPropagation(); legalModal.classList.remove('hidden'); });
+      closeLegalBtn.addEventListener('click', () => legalModal.classList.add('hidden'));
+      legalModal.addEventListener('click', (e) => { if (e.target === legalModal) legalModal.classList.add('hidden'); });
+
+      // ==================== CLICK CATCHER ====================
+      clickCatcher.addEventListener('click', () => {
+        if (currentTab !== 'main') return;
+        if (document.activeElement !== browserName) searchInput.focus();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && document.activeElement !== searchInput && document.activeElement !== browserName && document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'INPUT') {
+          e.preventDefault();
+          if (currentTab === 'main') searchInput.focus();
+        }
+      });
+
+      // ==================== MATH ====================
+      function evaluateMath(str) {
+        let s = str.replace(/\s/g, '');
+        if (!s.endsWith('=')) return null;
+        let expr = s.slice(0, -1);
+        if (!/^[\d+\-*/]+$/.test(expr)) return null;
+        if (!/[+\-*/]/.test(expr)) return null;
+        try {
+          let result = Function('"use strict";return (' + expr + ')')();
+          if (isNaN(result) || !isFinite(result)) return null;
+          return Math.round(result * 1e10) / 1e10;
+        } catch { return null; }
+      }
+
+      function updateMathHint() {
+        const val = searchInput.value;
+        const result = evaluateMath(val);
+        if (result !== null) {
+          mathHint.textContent = '= ' + result;
+          mathHint.style.opacity = '1';
+          flashBrowserNameWithAnswer(result);
+        } else {
+          mathHint.textContent = '';
+          mathHint.style.opacity = '0';
+        }
+      }
+
+      function flashBrowserNameWithAnswer(answer) {
+        if (isEditingName || anonymousMode) return;
+        if (mathFlashTimeout) clearTimeout(mathFlashTimeout);
+        if (!browserName.classList.contains('math-flash')) {
+          browserName.textContent = answer;
+          browserName.classList.add('math-flash');
+          mathFlashTimeout = setTimeout(() => {
+            browserName.classList.remove('math-flash');
+            browserName.textContent = originalBrowserName;
+            mathFlashTimeout = null;
+          }, 2000);
+        } else {
+          browserName.textContent = answer;
+          mathFlashTimeout = setTimeout(() => {
+            browserName.classList.remove('math-flash');
+            browserName.textContent = originalBrowserName;
+            mathFlashTimeout = null;
+          }, 2000);
+        }
+      }
+
+      // ==================== PHYSICS ====================
+      function spawnPhysicsLetter(char) {
+        const rect = searchInput.getBoundingClientRect();
+        const containerRect = searchContainer.getBoundingClientRect();
+        const leftOffset = rect.left - containerRect.left + 18;
+        const topOffset = rect.top - containerRect.top + rect.height/2;
+        const el = document.createElement('div');
+        el.textContent = char;
+        el.style.position = 'absolute';
+        el.style.left = leftOffset + 'px';
+        el.style.top = topOffset + 'px';
+        el.style.fontSize = '1.25rem';
+        el.style.color = '#fff';
+        el.style.fontWeight = '500';
+        el.style.pointerEvents = 'none';
+        el.style.zIndex = '7';
+        el.style.transform = 'translate(-50%, -50%)';
+        el.style.opacity = '0.9';
+        el.style.transition = 'all 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
+        charLayer.appendChild(el);
+        requestAnimationFrame(() => {
+          el.style.transform = `translate(-50%, -50%) translate(${(Math.random()-0.5)*60}px, ${-40 - Math.random()*60}px) scale(0.8) rotate(${(Math.random()-0.5)*40}deg)`;
+          el.style.opacity = '0';
+        });
+        setTimeout(() => el.remove(), 700);
+      }
+
+      // ==================== SEARCH INPUT ====================
+      searchInput.addEventListener('input', (e) => {
+        updateMathHint();
+        const val = searchInput.value;
+        const words = val.trim().split(/\s+/).filter(w => w.length > 0);
+        if (words.length >= 1 && words.length <= 3 && val.trim().length > 0) {
+          starBtn.classList.add('visible');
+        } else {
+          starBtn.classList.remove('visible');
+        }
+        if (e.data) for (let ch of e.data) spawnPhysicsLetter(ch);
+      });
+
+      searchInput.addEventListener('paste', () => setTimeout(updateMathHint, 10));
+      searchInput.addEventListener('cut', () => setTimeout(updateMathHint, 10));
+
+      function isFiltered(query) {
+        const lower = query.toLowerCase();
+        for (const f of filters) {
+          if (lower.includes(f.toLowerCase())) return true;
+        }
+        return false;
+      }
+
+      // ==================== SEARCH EXECUTION ====================
+      function performSearch(query) {
+        if (!query) return;
+        if (isFiltered(query)) {
+          showToast('🚫 Запрос заблокирован фильтром');
+          return;
+        }
+
+        const firstWord = query.split(/\s+/)[0].toLowerCase();
+        if (customSearchMappings[firstWord]) {
+          const rest = query.slice(firstWord.length).trim();
+          let url = customSearchMappings[firstWord];
+          if (rest) url += encodeURIComponent(rest);
+          if (!anonymousMode) addToHistory(url, query);
+          checkBlockedAndGo(url);
+          return;
+        }
+
+        if (/^https?:\/\//i.test(query) || /^[\w-]+\.[\w.-]+/.test(query)) {
+          let url = query;
+          if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+          if (!anonymousMode) addToHistory(url, query);
+          checkBlockedAndGo(url);
+          return;
+        }
+
+        const url = 'https://yandex.ru/search/?text=' + encodeURIComponent(query);
+        if (!anonymousMode) addToHistory(url, query);
+        checkBlockedAndGo(url);
+      }
+
+      function checkBlockedAndGo(url) {
+        const domain = getDomain(url);
+        const isBlocked = blockedSites.some(s => domain.includes(s) || s.includes(domain));
+        if (isBlocked && pinCode) {
+          promptPin('Сайт защищён', 'Введите PIN для доступа к ' + domain, () => {
+            window.location.href = url;
+          });
+          return;
+        }
+        window.location.href = url;
+      }
+
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); performSearch(searchInput.value.trim()); }
+      });
+
+      starBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const query = searchInput.value.trim();
+        if (!query) return;
+        summaryText.textContent = 'Загрузка...';
+        summaryPopup.classList.add('show');
+        try {
+          const resp = await fetch(`https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
+          if (!resp.ok) throw new Error('Not found');
+          const data = await resp.json();
+          let extract = data.extract || 'Информация не найдена.';
+          const sentences = extract.match(/[^.!?]+[.!?]+/g) || [extract];
+          summaryText.textContent = sentences.slice(0, 6).join(' ') || extract;
+        } catch (err) {
+          summaryText.textContent = 'Не удалось загрузить информацию из Википедии.';
+        }
+      });
+
+      closeSummary.addEventListener('click', () => summaryPopup.classList.remove('show'));
+
+      // ==================== HISTORY ====================
+      function addToHistory(url, title) {
+        if (anonymousMode) return;
+        history.unshift({ url, title, time: Date.now() });
+        if (history.length > 100) history = history.slice(0, 100);
+        saveState();
+        renderHistoryDropdown();
+        renderFullHistory();
+        renderMySpace();
+      }
+
+      function renderHistoryDropdown() {
+        const recent = history.slice(0, 10);
+        if (recent.length === 0) {
+          historyList.innerHTML = '<div class="history-empty">История пуста</div>';
+          return;
+        }
+        historyList.innerHTML = recent.map((h, i) => `
+          <div class="history-item" data-index="${i}">
+            <div class="h-favicon">${(getDomain(h.url)[0] || '?').toUpperCase()}</div>
+            <div class="h-text">${escapeHtml(h.title || h.url)}</div>
+            <button class="h-remove" data-remove="${i}" title="Удалить">×</button>
+          </div>
+        `).join('');
+
+        historyList.querySelectorAll('.history-item').forEach(el => {
+          el.addEventListener('click', (e) => {
+            if (e.target.classList.contains('h-remove')) return;
+            const idx = parseInt(el.dataset.index);
+            const item = recent[idx];
+            if (item) {
+              if (!anonymousMode) addToHistory(item.url, item.title);
+              window.location.href = item.url;
+            }
+          });
+        });
+        historyList.querySelectorAll('.h-remove').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.dataset.remove);
+            const item = recent[idx];
+            const realIdx = history.indexOf(item);
+            if (realIdx > -1) history.splice(realIdx, 1);
+            saveState();
+            renderHistoryDropdown();
+            renderFullHistory();
+            renderMySpace();
+          });
+        });
+      }
+
+      function renderFullHistory() {
+        if (history.length === 0) {
+          fullHistoryList.innerHTML = '<div class="empty-state">История пуста</div>';
+          return;
+        }
+        fullHistoryList.innerHTML = history.slice(0, 50).map((h, i) => `
+          <div class="history-full-item">
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(h.title || h.url)}</span>
+            <button data-remove="${i}">×</button>
+          </div>
+        `).join('');
+        fullHistoryList.querySelectorAll('button[data-remove]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            history.splice(parseInt(btn.dataset.remove), 1);
+            saveState();
+            renderFullHistory();
+            renderHistoryDropdown();
+            renderMySpace();
+          });
+        });
+      }
+
+      tabsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        historyDropdown.classList.toggle('show');
+        renderHistoryDropdown();
+      });
+
+      historyClearBtn.addEventListener('click', () => {
+        history = [];
+        saveState();
+        renderHistoryDropdown();
+        renderFullHistory();
+        renderMySpace();
+        showToast('История очищена');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!historyDropdown.contains(e.target) && e.target !== tabsBtn && !tabsBtn.contains(e.target)) {
+          historyDropdown.classList.remove('show');
+        }
+      });
+      historyDropdown.addEventListener('click', (e) => e.stopPropagation());
+
+      // ==================== MY SPACE ====================
+      function renderMySpace() {
+        const counts = {};
+        history.forEach(h => {
+          const d = getDomain(h.url);
+          if (d && d !== 'yandex.ru') counts[d] = (counts[d] || 0) + 1;
+        });
+        const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 12);
+
+        if (top.length < 3) {
+          mySpaceContainer.innerHTML = `
+            <div class="empty-state">
+              <span class="big">🏗️</span>
+              Пространство ещё строится...<br>
+              Посетите больше сайтов, чтобы мы могли сформировать вашу главную страницу.
+            </div>
+          `;
+          return;
+        }
+
+        mySpaceContainer.innerHTML = `<div class="space-grid">${top.map(([domain]) => `
+          <div class="space-tile" data-domain="${escapeHtml(domain)}">
+            <span class="tile-icon">🌐</span>
+            <span class="tile-label">${escapeHtml(domain)}</span>
+          </div>
+        `).join('')}</div>`;
+
+        mySpaceContainer.querySelectorAll('.space-tile').forEach(tile => {
+          tile.addEventListener('click', () => {
+            const d = tile.dataset.domain;
+            const url = 'https://' + d;
+            if (!anonymousMode) addToHistory(url, d);
+            window.location.href = url;
+          });
+        });
+      }
+
+      // ==================== FILTERS ====================
+      function renderFilters() {
+        if (filters.length === 0) {
+          filterList.innerHTML = '<div class="empty-state" style="padding:20px;">Фильтров нет</div>';
+          return;
+        }
+        filterList.innerHTML = filters.map((f, i) => `
+          <div class="filter-item">
+            <span>${escapeHtml(f)}</span>
+            <button data-remove="${i}">×</button>
+          </div>
+        `).join('');
+        filterList.querySelectorAll('button[data-remove]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            filters.splice(parseInt(btn.dataset.remove), 1);
+            saveState();
+            renderFilters();
+          });
+        });
+      }
+
+      addFilterBtn.addEventListener('click', () => {
+        const val = filterInput.value.trim();
+        if (!val) return;
+        if (!filters.includes(val)) {
+          filters.push(val);
+          saveState();
+          renderFilters();
+          filterInput.value = '';
+          showToast('Фильтр добавлен');
+        }
+      });
+
+      // ==================== BLOCKED ====================
+      function renderBlocked() {
+        if (blockedSites.length === 0) {
+          blockedList.innerHTML = '<div class="empty-state" style="padding:20px;">Заблокированных сайтов нет</div>';
+          return;
+        }
+        blockedList.innerHTML = blockedSites.map((s, i) => `
+          <div class="filter-item">
+            <span>${escapeHtml(s)}</span>
+            <button data-remove="${i}">×</button>
+          </div>
+        `).join('');
+        blockedList.querySelectorAll('button[data-remove]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            blockedSites.splice(parseInt(btn.dataset.remove), 1);
+            saveState();
+            renderBlocked();
+          });
+        });
+      }
+
+      addBlockedBtn.addEventListener('click', () => {
+        const val = blockedSiteInput.value.trim();
+        if (!val) return;
+        const clean = val.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+        if (!blockedSites.includes(clean)) {
+          blockedSites.push(clean);
+          saveState();
+          renderBlocked();
+          blockedSiteInput.value = '';
+          showToast('Сайт добавлен в защищённые');
+        }
+      });
+
+      // ==================== PIN ====================
+      function renderPinKeypad() {
+        pinKeypad.innerHTML = '';
+        for (let i = 1; i <= 9; i++) {
+          const btn = document.createElement('button');
+          btn.className = 'pin-key';
+          btn.textContent = i;
+          btn.addEventListener('click', () => pinPress(String(i)));
+          pinKeypad.appendChild(btn);
+        }
+        const empty = document.createElement('button');
+        empty.className = 'pin-key';
+        empty.style.visibility = 'hidden';
+        pinKeypad.appendChild(empty);
+        const zero = document.createElement('button');
+        zero.className = 'pin-key';
+        zero.textContent = '0';
+        zero.addEventListener('click', () => pinPress('0'));
+        pinKeypad.appendChild(zero);
+        const back = document.createElement('button');
+        back.className = 'pin-key';
+        back.textContent = '⌫';
+        back.addEventListener('click', () => pinBackspace());
+        pinKeypad.appendChild(back);
+      }
+
+      function pinPress(digit) {
+        if (pinBuffer.length >= 4) return;
+        pinBuffer += digit;
+        updatePinDisplay();
+        if (pinBuffer.length === 4) setTimeout(() => verifyPin(), 200);
+      }
+
+      function pinBackspace() { pinBuffer = pinBuffer.slice(0, -1); updatePinDisplay(); }
+
+      function updatePinDisplay() {
+        pinDisplay.querySelectorAll('.pin-dot').forEach((dot, i) => {
+          dot.classList.toggle('filled', i < pinBuffer.length);
+        });
+      }
+
+      function verifyPin() {
+        if (pinMode === 'set') {
+          pinCode = pinBuffer;
+          pinModal.classList.remove('show');
+          pinBuffer = '';
+          updatePinDisplay();
+          pinError.textContent = '';
+          saveState();
+          showToast('🔐 PIN установлен');
+          pinMode = null;
+          return;
+        }
+        if (pinBuffer === pinCode) {
+          pinModal.classList.remove('show');
+          pinBuffer = '';
+          updatePinDisplay();
+          pinError.textContent = '';
+          if (pinCallback) {
+            const cb = pinCallback;
+            pinCallback = null;
+            pinMode = null;
+            setTimeout(cb, 200);
+          }
+        } else {
+          pinError.textContent = 'Неверный PIN';
+          pinBuffer = '';
+          updatePinDisplay();
+          setTimeout(() => { pinError.textContent = ''; }, 1500);
+        }
+      }
+
+      function promptPin(title, subtitle, callback) {
+        pinMode = 'enter';
+        pinTitle.textContent = title;
+        pinSubtitle.textContent = subtitle;
+        pinBuffer = '';
+        updatePinDisplay();
+        pinError.textContent = '';
+        pinCallback = callback || null;
+        pinModal.classList.add('show');
+      }
+
+      pinCancelBtn.addEventListener('click', () => {
+        pinModal.classList.remove('show');
+        pinBuffer = '';
+        updatePinDisplay();
+        pinCallback = null;
+        pinMode = null;
+      });
+
+      renderPinKeypad();
+
+      setPinBtn.addEventListener('click', () => {
+        pinMode = 'set';
+        pinTitle.textContent = 'Установить PIN';
+        pinSubtitle.textContent = 'Введите новый 4-значный код';
+        pinBuffer = '';
+        updatePinDisplay();
+        pinError.textContent = '';
+        pinCallback = null;
+        pinModal.classList.add('show');
+      });
+
+      removePinBtn.addEventListener('click', () => {
+        if (pinCode) {
+          pinCode = null;
+          saveState();
+          showToast('PIN удалён');
+        } else {
+          showToast('PIN не установлен');
+        }
+      });
+
+      // ==================== LEAVE ====================
+      function bindLeaveButtons() {
+        document.getElementById('stayBtn').addEventListener('click', () => {
+          leaveModal.classList.remove('show');
+          showToast('❤️ Спасибо, что остался!');
+        });
+        document.getElementById('leaveAnywayBtn').addEventListener('click', () => {
+          leaveBox.innerHTML = `
+            <div class="leave-final">Ну ладно, уговорили.</div>
+            <div class="leave-sub">Вы можете перейти на Яндекс Браузер.</div>
+            <p style="color:#ccc;font-size:0.9rem;margin:16px 0;line-height:1.5;">
+              Яндекс Браузер — крупнейший в России.<br>
+              У него та же поисковая система, что и у нас.
+            </p>
+            <a href="https://yandex.ru/portal/defsearchpromo/landing/ru_mobile300?partner=G8FvrGl1U5keQ46802&offer_type=DLbgMOQ1TioAY31862&utm_source=promocodes_ru&utm_medium=affiliate_default&utm_campaign=300&utm_content=90920252&clid=15379431" target="_blank" rel="noopener" class="yandex-go-btn">Перейти в Яндекс</a>
+            <div style="margin-top:16px;">
+              <button class="panel-btn ghost" id="closeLeave">Закрыть</button>
+            </div>
+          `;
+          document.getElementById('closeLeave').addEventListener('click', () => {
+            leaveModal.classList.remove('show');
+          });
+        });
+      }
+
+      leaveBtn.addEventListener('click', () => {
+        leaveBox.innerHTML = `
+          <h3>Подожди! Ты уверен?</h3>
+          <ul class="leave-benefits">
+            <li>Полная приватность — никакие данные не уходят на сторонние серверы</li>
+            <li>Анонимный режим с декодированием имени</li>
+            <li>Кастомизация интерфейса: цвета, обои, перетаскивание</li>
+            <li>Собственные HTML-виджеты на главном экране</li>
+            <li>Защита PIN-кодом и фильтрация контента</li>
+            <li>Локальное хранение — всё остаётся у тебя</li>
+          </ul>
+          <div class="leave-actions">
+            <button class="panel-btn green" id="stayBtn">Остаться</button>
+            <button class="panel-btn danger" id="leaveAnywayBtn">Всё равно уйти</button>
+          </div>
+        `;
+        bindLeaveButtons();
+        leaveModal.classList.add('show');
+      });
+
+      leaveModal.addEventListener('click', (e) => {
+        if (e.target === leaveModal) leaveModal.classList.remove('show');
+      });
+
+      // ==================== CUSTOM WIDGETS ====================
+      function renderCustomWidgets() {
+        customWidgetsLayer.innerHTML = '';
+        customWidgets.forEach((w) => {
+          const el = document.createElement('div');
+          el.className = 'custom-widget';
+          el.dataset.id = w.id;
+          el.style.left = w.x + 'px';
+          el.style.top = w.y + 'px';
+          el.innerHTML = w.html;
+          el.title = 'Перетащите, чтобы переместить. Двойной клик — удалить.';
+          customWidgetsLayer.appendChild(el);
+          makeWidgetDraggable(el, w);
+        });
+      }
+
+      function makeWidgetDraggable(el, widget) {
+        let startX, startY, startLeft, startTop;
+        let dragging = false;
+        let moved = false;
+
+        function onDown(e) {
+          const coords = e.touches ? e.touches[0] : e;
+          startX = coords.clientX; startY = coords.clientY;
+          startLeft = parseInt(widget.x); startTop = parseInt(widget.y);
+          dragging = true; moved = false;
+          el.classList.add('dragging');
+          e.preventDefault();
+        }
+        function onMove(e) {
+          if (!dragging) return;
+          const coords = e.touches ? e.touches[0] : e;
+          const dx = coords.clientX - startX;
+          const dy = coords.clientY - startY;
+          if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+          widget.x = startLeft + dx;
+          widget.y = startTop + dy;
+          el.style.left = widget.x + 'px';
+          el.style.top = widget.y + 'px';
+          e.preventDefault();
+        }
+        function onUp() {
+          if (!dragging) return;
+          dragging = false;
+          el.classList.remove('dragging');
+          if (moved) saveState();
+        }
+
+        el.addEventListener('mousedown', onDown);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+        el.addEventListener('touchstart', onDown, { passive: false });
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend', onUp);
+
+        el.addEventListener('dblclick', () => {
+          customWidgets = customWidgets.filter(w => w.id !== widget.id);
+          saveState();
+          renderCustomWidgets();
+          showToast('Виджет удалён');
+        });
+      }
+
+      addCustomWidgetBtn.addEventListener('click', () => {
+        const html = customHtmlInput.value.trim();
+        if (!html) { showToast('Введите HTML-код'); return; }
+        const id = 'w_' + Date.now();
+        customWidgets.push({
+          id, html,
+          x: window.innerWidth / 2 - 60,
+          y: 200 + Math.random() * 150
+        });
+        saveState();
+        renderCustomWidgets();
+        customHtmlInput.value = '';
+        showToast('✅ Виджет добавлен');
+      });
+
+      clearWidgetsBtn.addEventListener('click', () => {
+        if (customWidgets.length === 0) { showToast('Виджетов нет'); return; }
+        customWidgets = [];
+        saveState();
+        renderCustomWidgets();
+        showToast('Все виджеты удалены');
+      });
+
+      // ==================== TABS ====================
+      function switchTab(tab) {
+        currentTab = tab;
+        tabMain.classList.toggle('active', tab === 'main');
+        tabMe.classList.toggle('active', tab === 'me');
+        tabOther.classList.toggle('active', tab === 'other');
+        mePanel.classList.toggle('show', tab === 'me');
+        otherPanel.classList.toggle('show', tab === 'other');
+        // Dim main UI when not on main tab
+        const dim = tab !== 'main' ? '0.15' : '1';
+        const pEvents = tab !== 'main' ? 'none' : '';
+        dragGroup.style.opacity = dim;
+        dragGroup.style.pointerEvents = pEvents;
+        document.querySelector('.dock').style.opacity = dim;
+        document.querySelector('.dock').style.pointerEvents = pEvents;
+        document.querySelector('.edit-btn').style.opacity = dim;
+        document.querySelector('.edit-btn').style.pointerEvents = pEvents;
+        customWidgetsLayer.style.opacity = dim;
+        customWidgetsLayer.style.pointerEvents = pEvents;
+        if (tab === 'main') {
+          setTimeout(() => searchInput.focus(), 100);
+        }
+      }
+
+      tabMain.addEventListener('click', function(e) {
+        e.preventDefault();
+        switchTab('main');
+      });
+      tabMe.addEventListener('click', function(e) {
+        e.preventDefault();
+        switchTab('me');
+        renderFilters();
+        renderFullHistory();
+        renderMySpace();
+        renderBlocked();
+      });
+      tabOther.addEventListener('click', function(e) {
+        e.preventDefault();
+        switchTab('other');
+      });
+
+      // ==================== BROWSER NAME ====================
+      browserName.addEventListener('focus', () => {
+        if (anonymousMode) return;
+        isEditingName = true;
+        if (browserName.classList.contains('math-flash')) {
+          if (mathFlashTimeout) { clearTimeout(mathFlashTimeout); mathFlashTimeout = null; }
+          browserName.classList.remove('math-flash');
+          browserName.textContent = originalBrowserName;
+        }
+      });
+
+      browserName.addEventListener('blur', () => {
+        isEditingName = false;
+        if (anonymousMode) return;
+        const newName = browserName.textContent.trim();
+        if (newName === '') {
+          browserName.textContent = 'ильяфан';
+          originalBrowserName = 'ильяфан';
+        } else {
+          originalBrowserName = newName;
+        }
+        saveState();
+      });
+
+      browserName.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); browserName.blur(); }
+      });
+
+      browserName.addEventListener('mousedown', (e) => {
+        if (anonymousMode) { e.preventDefault(); return; }
+        if (!browserName.classList.contains('math-flash')) e.stopPropagation();
+      });
+
+      browserName.addEventListener('touchstart', (e) => {
+        if (anonymousMode) { e.preventDefault(); return; }
+        if (!browserName.classList.contains('math-flash')) e.stopPropagation();
+      });
+
+      // ==================== DOCK ====================
+      dockItems.forEach((item, index) => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const url = dockUrls[index];
+          if (url && url.trim() !== '') {
+            let finalUrl = url.trim();
+            if (!/^https?:\/\//i.test(finalUrl)) finalUrl = 'https://' + finalUrl;
+            if (!anonymousMode) addToHistory(finalUrl, finalUrl);
+            checkBlockedAndGo(finalUrl);
+          } else {
+            editPanel.classList.remove('hidden');
+          }
+        });
+      });
+
+      // ==================== EDIT PANEL ====================
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editPanel.classList.toggle('hidden');
+        slot0Url.value = dockUrls[0];
+        slot1Url.value = dockUrls[1];
+        slot2Url.value = dockUrls[2];
+        const lines = Object.entries(customSearchMappings).map(([k, v]) => `${k}=${v}`);
+        customSearchInput.value = lines.join('\n');
+      });
+
+      wallpaperFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          savedWallpaper = `url('${ev.target.result}')`;
+          browserContainer.style.backgroundImage = savedWallpaper;
+          saveState();
+        };
+        reader.readAsDataURL(file);
+      });
+
+      doneEditBtn.addEventListener('click', () => {
+        savedSearchColor = searchColor.value;
+        savedNameColor = nameColor.value;
+        searchContainer.style.backgroundColor = savedSearchColor;
+        browserName.style.color = savedNameColor;
+        dockUrls[0] = slot0Url.value.trim();
+        dockUrls[1] = slot1Url.value.trim();
+        dockUrls[2] = slot2Url.value.trim();
+        updateDockDisplay();
+        customSearchMappings = {};
+        customSearchInput.value.split('\n').forEach(line => {
+          const parts = line.split('=');
+          if (parts.length >= 2 && parts[0].trim() && parts[1].trim()) {
+            customSearchMappings[parts[0].trim().toLowerCase()] = parts[1].trim();
+          }
+        });
+        editPanel.classList.add('hidden');
+        saveState();
+        showToast('Настройки сохранены');
+      });
+
+      resetPosBtn.addEventListener('click', () => {
+        dragPos = { x: 0, y: 0 };
+        dragGroup.style.transform = 'translate(0px, 0px)';
+        saveState();
+        showToast('Позиция сброшена');
+      });
+
+      searchColor.addEventListener('input', () => {
+        savedSearchColor = searchColor.value;
+        searchContainer.style.backgroundColor = savedSearchColor;
+      });
+      nameColor.addEventListener('input', () => {
+        savedNameColor = nameColor.value;
+        browserName.style.color = savedNameColor;
+      });
+
+      // ==================== DRAGGING ====================
+      function getClientCoords(e) {
+        if (e.touches && e.touches.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        return { x: e.clientX, y: e.clientY };
+      }
+
+      function onDragStart(e) {
+        if (anonymousMode) return;
+        const target = e.target;
+        if (target === searchInput ||
+            target.closest('.anon-btn') ||
+            target.closest('.star-btn') ||
+            target.closest('.tabs-btn') ||
+            target.closest('.history-dropdown') ||
+            target.closest('.edit-btn') ||
+            target.closest('.edit-panel') ||
+            target.closest('.dock') ||
+            target.closest('.summary-popup') ||
+            target.closest('.welcome-overlay') ||
+            target.closest('.legal-modal') ||
+            target.closest('.tab-bar') ||
+            target.closest('.panel') ||
+            target.closest('.pin-modal') ||
+            target.closest('.leave-modal')) {
+          return;
+        }
+
+        if (target === browserName && isEditingName) return;
+        if (target === browserName && browserName.classList.contains('math-flash')) { e.preventDefault(); return; }
+
+        dragStartedOnName = (target === browserName);
+        if (dragStartedOnName) {
+          e.preventDefault();
+          if (document.activeElement === browserName) browserName.blur();
+        } else {
+          e.preventDefault();
+        }
+
+        isDragging = true;
+        dragMoved = false;
+        const coords = getClientCoords(e);
+        dragStart.x = coords.x - dragPos.x;
+        dragStart.y = coords.y - dragPos.y;
+        dragGroup.classList.add('dragging');
+      }
+
+      function onDragMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const coords = getClientCoords(e);
+        const newX = coords.x - dragStart.x;
+        const newY = coords.y - dragStart.y;
+        if (Math.abs(newX - dragPos.x) > 2 || Math.abs(newY - dragPos.y) > 2) dragMoved = true;
+        dragPos.x = newX;
+        dragPos.y = newY;
+        dragGroup.style.transform = `translate(${dragPos.x}px, ${dragPos.y}px)`;
+      }
+
+      function onDragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        dragGroup.classList.remove('dragging');
+        if (dragMoved) {
+          saveState();
+          if (dragStartedOnName) setTimeout(() => browserName.blur(), 10);
+        } else {
+          if (!dragStartedOnName) {
+            setTimeout(() => {
+              if (document.activeElement !== browserName) searchInput.focus();
+            }, 10);
+          }
+        }
+        dragStartedOnName = false;
+      }
+
+      dragGroup.addEventListener('mousedown', onDragStart);
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('mouseup', onDragEnd);
+      dragGroup.addEventListener('touchstart', onDragStart, { passive: false });
+      document.addEventListener('touchmove', onDragMove, { passive: false });
+      document.addEventListener('touchend', onDragEnd);
+
+      dragGroup.addEventListener('contextmenu', (e) => { if (isDragging) e.preventDefault(); });
+
+      // ==================== CLOSE EDIT PANEL ====================
+      document.addEventListener('click', (e) => {
+        if (!editPanel.contains(e.target) && e.target !== editBtn && !editBtn.contains(e.target)) {
+          editPanel.classList.add('hidden');
+        }
+      });
+      editPanel.addEventListener('click', (e) => e.stopPropagation());
+
+      // ==================== INIT ====================
+      loadState();
+      renderHistoryDropdown();
+      renderFullHistory();
+      renderFilters();
+      renderBlocked();
+      renderMySpace();
+      renderCustomWidgets();
+      updateDockDisplay();
+
+      // Re-apply saved styles after load
+      if (savedWallpaper && !anonymousMode) {
+        browserContainer.style.backgroundImage = savedWallpaper;
+      }
+      if (savedSearchColor) {
+        searchContainer.style.backgroundColor = savedSearchColor;
+      }
+      if (savedNameColor) {
+        browserName.style.color = savedNameColor;
+      }
+
+      window.addEventListener('load', () => {
+        if (localStorage.getItem('ilyafan_welcome_seen')) {
+          if (pinCode) {
+            pinMode = 'enter';
+            pinTitle.textContent = 'Введите PIN';
+            pinSubtitle.textContent = 'Введите 4-значный код для входа';
+            pinBuffer = '';
+            updatePinDisplay();
+            pinError.textContent = '';
+            pinCallback = null;
+            pinModal.classList.add('show');
+          } else {
+            searchInput.focus();
+          }
+        }
+        updateMathHint();
+      });
+
+      setInterval(updateMathHint, 300);
+
+      searchInput.addEventListener('mousedown', (e) => e.stopPropagation());
+      searchInput.addEventListener('touchstart', (e) => e.stopPropagation());
+    })();
+  </script>
+</body>
+</html>
