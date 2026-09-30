@@ -4,16 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Умный бизнес · NFC</title>
-  <!-- TikTok Sans font (подключаем через Google Fonts, если доступно, иначе fallback) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: 'TikTok Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -22,7 +17,6 @@
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      margin: 0;
       padding: 16px;
       color: #111;
     }
@@ -34,29 +28,15 @@
       border-radius: 32px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.05);
       padding: 28px 24px 36px;
-      transition: all 0.2s ease;
       border: 1px solid #eaeaea;
       min-height: 600px;
       display: flex;
       flex-direction: column;
     }
 
-    h1 {
-      font-size: 26px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 4px;
-      color: #000;
-    }
+    h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; color: #000; }
+    .subhead { font-size: 14px; font-weight: 400; color: #777; margin-bottom: 28px; }
 
-    .subhead {
-      font-size: 14px;
-      font-weight: 400;
-      color: #777;
-      margin-bottom: 28px;
-    }
-
-    /* кнопки */
     .btn {
       font-family: inherit;
       border: none;
@@ -67,7 +47,7 @@
       padding: 16px 20px;
       border-radius: 60px;
       cursor: pointer;
-      transition: background 0.15s, transform 0.1s, opacity 0.2s;
+      transition: background 0.15s, transform 0.1s;
       width: 100%;
       text-align: center;
       letter-spacing: -0.01em;
@@ -76,98 +56,39 @@
       justify-content: center;
       gap: 10px;
       border: 1.5px solid #111;
-      background: #111;
-      color: white;
     }
+    .btn:active { transform: scale(0.98); background: #333; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-outline { background: transparent; color: #111; border: 1.5px solid #111; }
+    .btn-outline:active { background: #f0f0f0; }
+    .btn-icon { font-size: 20px; line-height: 1; }
 
-    .btn:active {
-      transform: scale(0.98);
-      background: #333;
-    }
-
-    .btn-outline {
-      background: transparent;
-      color: #111;
-      border: 1.5px solid #111;
-    }
-
-    .btn-outline:active {
-      background: #f0f0f0;
-    }
-
-    .btn-small {
-      padding: 12px 16px;
-      font-size: 15px;
-    }
-
-    .btn-icon {
-      font-size: 20px;
-      line-height: 1;
-    }
-
-    /* карточка устройства */
     .device-card {
       background: #fafafa;
       border: 1.5px solid #ddd;
       border-radius: 24px;
       padding: 20px 18px;
       margin-top: 20px;
-      margin-bottom: 16px;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-
-    .device-card:active {
-      background: #f0f0f0;
-      border-color: #aaa;
-    }
-
-    .device-info {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
+    .device-card:active { background: #f0f0f0; border-color: #aaa; }
+    .device-info { display: flex; align-items: center; gap: 14px; }
     .device-icon {
-      background: #111;
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 22px;
+      background: #111; width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 22px;
     }
+    .device-name { font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
+    .device-tag { font-size: 12px; color: #666; margin-top: 2px; word-break: break-all; }
+    .chevron { font-size: 22px; color: #aaa; font-weight: 300; }
 
-    .device-name {
-      font-weight: 600;
-      font-size: 16px;
-      letter-spacing: -0.01em;
-    }
-
-    .device-tag {
-      font-size: 12px;
-      color: #666;
-      margin-top: 2px;
-    }
-
-    .chevron {
-      font-size: 22px;
-      color: #aaa;
-      font-weight: 300;
-    }
-
-    /* модальные окна (простые оверлеи) */
     .overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(3px);
       display: flex;
@@ -179,11 +100,7 @@
       opacity: 0;
       transition: opacity 0.2s ease, visibility 0.2s;
     }
-
-    .overlay.active {
-      visibility: visible;
-      opacity: 1;
-    }
+    .overlay.active { visibility: visible; opacity: 1; }
 
     .modal {
       background: white;
@@ -192,42 +109,15 @@
       width: 100%;
       padding: 28px 24px 24px;
       box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
-      text-align: left;
-      transition: transform 0.2s;
+      max-height: 90vh;
+      overflow-y: auto;
     }
+    .modal h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .modal p { font-size: 15px; color: #555; margin-bottom: 20px; line-height: 1.4; }
+    .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
+    .modal-actions .btn { flex: 1; }
 
-    .modal h2 {
-      font-size: 22px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 8px;
-    }
-
-    .modal p {
-      font-size: 15px;
-      color: #555;
-      margin-bottom: 24px;
-      line-height: 1.4;
-    }
-
-    .modal-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 24px;
-    }
-
-    .modal-actions .btn {
-      flex: 1;
-    }
-
-    /* варианты устройств */
-    .variant-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin: 20px 0 8px;
-    }
-
+    .variant-list { display: flex; flex-direction: column; gap: 12px; margin: 20px 0 8px; }
     .variant-item {
       background: #f8f8f8;
       border: 1.5px solid #e0e0e0;
@@ -241,44 +131,19 @@
       cursor: pointer;
       transition: background 0.15s, border 0.15s;
     }
+    .variant-item:active { background: #ececec; border-color: #aaa; }
+    .variant-item span { color: #888; font-weight: 400; }
 
-    .variant-item:active {
-      background: #ececec;
-      border-color: #aaa;
-    }
-
-    .variant-item span {
-      color: #888;
-      font-weight: 400;
-    }
-
-    /* NFC индикация */
-    .nfc-pulse {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px 0;
-    }
-
-    .nfc-icon {
-      font-size: 64px;
-      margin-bottom: 16px;
-      animation: pulse 2s infinite;
-    }
-
+    .nfc-pulse { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0; }
+    .nfc-icon { font-size: 64px; margin-bottom: 16px; animation: pulse 2s infinite; }
     @keyframes pulse {
       0% { opacity: 0.6; transform: scale(1); }
       50% { opacity: 1; transform: scale(1.05); }
       100% { opacity: 0.6; transform: scale(1); }
     }
-
-    .nfc-hint {
-      font-size: 15px;
-      color: #666;
-      text-align: center;
-      margin-top: 8px;
-    }
+    .nfc-hint { font-size: 15px; color: #666; text-align: center; margin-top: 8px; }
+    .nfc-hint.error { color: #c00; font-weight: 500; }
+    .nfc-hint.success { color: #080; font-weight: 500; }
 
     .link-preview {
       background: #f4f4f4;
@@ -289,7 +154,6 @@
       color: #111;
       border: 1px solid #e0e0e0;
       margin: 16px 0;
-      font-family: 'TikTok Sans', monospace;
     }
 
     input {
@@ -304,65 +168,56 @@
       background: #fff;
       margin-bottom: 8px;
     }
+    input:focus { border-color: #111; }
 
-    input:focus {
-      border-color: #111;
-    }
+    .hidden { display: none !important; }
+    .flex-col { display: flex; flex-direction: column; }
+    .gap-8 { gap: 8px; }
+    .mt-16 { margin-top: 16px; }
 
-    .hidden {
-      display: none !important;
-    }
-
-    .flex-col {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .gap-8 {
-      gap: 8px;
-    }
-
-    .mt-16 {
-      margin-top: 16px;
-    }
-
-    .text-center {
-      text-align: center;
-    }
-
-    .status-badge {
+    .warning-box {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 14px;
+      padding: 12px 14px;
       font-size: 13px;
-      background: #e8e8e8;
-      padding: 4px 12px;
-      border-radius: 40px;
-      color: #333;
+      color: #7a5c00;
+      margin-bottom: 16px;
+      line-height: 1.4;
     }
 
-    /* кастомный скролл */
-    ::-webkit-scrollbar {
-      width: 0;
-      background: transparent;
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 30px;
+      background: #eee;
+      color: #555;
+      margin-left: 6px;
+      vertical-align: middle;
+      font-weight: 500;
     }
+    .badge.live { background: #d4edda; color: #155724; }
+    .badge.demo { background: #fff3cd; color: #856404; }
+
+    ::-webkit-scrollbar { width: 0; background: transparent; }
   </style>
 </head>
 <body>
-<div class="app" id="app">
-  <!-- Главный экран -->
+<div class="app">
   <div id="homeScreen">
-    <h1>Умный бизнес</h1>
+    <h1>Умный бизнес <span class="badge" id="modeBadge">NFC</span></h1>
     <div class="subhead">Управление NFC-метками</div>
 
-    <!-- Список устройств -->
     <div id="devicesContainer"></div>
 
-    <!-- Кнопка добавления -->
     <button class="btn" id="addDeviceBtn" style="margin-top: 20px;">
       <span class="btn-icon">＋</span> Добавить устройство
     </button>
   </div>
 </div>
 
-<!-- Оверлей: выбор варианта -->
+<!-- Выбор варианта -->
 <div class="overlay" id="variantOverlay">
   <div class="modal">
     <h2>Выберите устройство</h2>
@@ -378,27 +233,30 @@
   </div>
 </div>
 
-<!-- Оверлей: NFC верификация (добавление) -->
+<!-- NFC добавление -->
 <div class="overlay" id="nfcAddOverlay">
   <div class="modal">
     <h2>NFC верификация</h2>
     <p>Приложите телефон к метке Eliaphan</p>
+    <div class="warning-box hidden" id="addWarnBox">
+      Ваш браузер не поддерживает Web NFC. Будет использована симуляция.
+    </div>
     <div class="nfc-pulse">
       <div class="nfc-icon">📱</div>
-      <div class="nfc-hint">Ожидание метки...</div>
+      <div class="nfc-hint" id="addStatus">Ожидание метки...</div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" id="cancelNfcAddBtn">Отмена</button>
-      <button class="btn" id="simulateNfcAddBtn">Найдена метка</button>
+      <button class="btn hidden" id="simulateNfcAddBtn">Симулировать метку</button>
     </div>
   </div>
 </div>
 
-<!-- Оверлей: управление устройством (главное меню) -->
+<!-- Управление устройством -->
 <div class="overlay" id="deviceControlOverlay">
   <div class="modal">
     <h2 id="controlDeviceName">Eliaphan Smart NFC</h2>
-    <p id="controlDeviceDesc">метка 1 · активна</p>
+    <p id="controlDeviceDesc">метка 1</p>
     <div class="flex-col gap-8 mt-16">
       <button class="btn btn-outline" id="changeLinkBtn">Изменить ссылку</button>
       <button class="btn btn-outline" id="readLinkBtn">Прочитать ссылку</button>
@@ -409,15 +267,18 @@
   </div>
 </div>
 
-<!-- Оверлей: изменение ссылки (ввод + NFC) -->
+<!-- Изменить ссылку -->
 <div class="overlay" id="changeLinkOverlay">
   <div class="modal">
     <h2>Изменить ссылку</h2>
-    <p>Вставьте новую ссылку и приложите метку</p>
+    <p>Введите новую ссылку и приложите метку для записи</p>
     <input type="url" id="newLinkInput" placeholder="https://example.com" value="https://">
+    <div class="warning-box hidden" id="writeWarnBox">
+      Web NFC не поддерживается. Будет использована симуляция записи.
+    </div>
     <div class="nfc-pulse" style="padding: 8px 0;">
       <div class="nfc-icon" style="font-size: 48px;">📱</div>
-      <div class="nfc-hint">Приложите телефон к метке для записи</div>
+      <div class="nfc-hint" id="writeStatus">Приложите телефон к метке</div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" id="cancelChangeLinkBtn">Отмена</button>
@@ -426,274 +287,374 @@
   </div>
 </div>
 
-<!-- Оверлей: чтение ссылки (NFC) -->
+<!-- Прочитать ссылку -->
 <div class="overlay" id="readLinkOverlay">
   <div class="modal">
     <h2>Чтение ссылки</h2>
     <p>Приложите телефон к метке для чтения</p>
+    <div class="warning-box hidden" id="readWarnBox">
+      Web NFC не поддерживается. Будет использована симуляция чтения.
+    </div>
     <div class="nfc-pulse">
       <div class="nfc-icon">📱</div>
-      <div class="nfc-hint">Ожидание метки...</div>
+      <div class="nfc-hint" id="readStatus">Ожидание метки...</div>
     </div>
     <div class="link-preview hidden" id="readLinkResult"></div>
     <div class="modal-actions">
       <button class="btn btn-outline" id="cancelReadLinkBtn">Закрыть</button>
-      <button class="btn" id="simulateReadBtn">Считать метку</button>
+      <button class="btn hidden" id="simulateReadBtn">Симулировать метку</button>
     </div>
   </div>
 </div>
 
 <script>
-  (function() {
-    // ---------- Состояние ----------
-    // Устройства: массив объектов { id, name, variant, link }
-    let devices = [];
+(function () {
+  // ===================== Состояние =====================
+  let devices = [];
+  let currentDeviceId = null;
 
-    // Текущее устройство для управления (id)
-    let currentDeviceId = null;
+  // Web NFC
+  const hasWebNFC = 'NDEFReader' in window;
+  let ndefReader = null;
+  let ndefAbortController = null;
 
-    // Ссылка, которая будет записана
-    let pendingLink = '';
+  // ===================== DOM =====================
+  const $ = id => document.getElementById(id);
 
-    // ---------- DOM элементы ----------
-    const homeScreen = document.getElementById('homeScreen');
-    const devicesContainer = document.getElementById('devicesContainer');
-    const addDeviceBtn = document.getElementById('addDeviceBtn');
+  const devicesContainer = $('devicesContainer');
+  const addDeviceBtn = $('addDeviceBtn');
+  const modeBadge = $('modeBadge');
 
-    // Оверлеи
-    const variantOverlay = document.getElementById('variantOverlay');
-    const nfcAddOverlay = document.getElementById('nfcAddOverlay');
-    const deviceControlOverlay = document.getElementById('deviceControlOverlay');
-    const changeLinkOverlay = document.getElementById('changeLinkOverlay');
-    const readLinkOverlay = document.getElementById('readLinkOverlay');
+  const variantOverlay = $('variantOverlay');
+  const nfcAddOverlay = $('nfcAddOverlay');
+  const deviceControlOverlay = $('deviceControlOverlay');
+  const changeLinkOverlay = $('changeLinkOverlay');
+  const readLinkOverlay = $('readLinkOverlay');
 
-    // Кнопки
-    const closeVariantBtn = document.getElementById('closeVariantBtn');
-    const cancelNfcAddBtn = document.getElementById('cancelNfcAddBtn');
-    const simulateNfcAddBtn = document.getElementById('simulateNfcAddBtn');
-    const closeControlBtn = document.getElementById('closeControlBtn');
-    const changeLinkBtn = document.getElementById('changeLinkBtn');
-    const readLinkBtn = document.getElementById('readLinkBtn');
-    const cancelChangeLinkBtn = document.getElementById('cancelChangeLinkBtn');
-    const writeLinkBtn = document.getElementById('writeLinkBtn');
-    const cancelReadLinkBtn = document.getElementById('cancelReadLinkBtn');
-    const simulateReadBtn = document.getElementById('simulateReadBtn');
+  const closeVariantBtn = $('closeVariantBtn');
+  const cancelNfcAddBtn = $('cancelNfcAddBtn');
+  const simulateNfcAddBtn = $('simulateNfcAddBtn');
+  const closeControlBtn = $('closeControlBtn');
+  const changeLinkBtn = $('changeLinkBtn');
+  const readLinkBtn = $('readLinkBtn');
+  const cancelChangeLinkBtn = $('cancelChangeLinkBtn');
+  const writeLinkBtn = $('writeLinkBtn');
+  const cancelReadLinkBtn = $('cancelReadLinkBtn');
+  const simulateReadBtn = $('simulateReadBtn');
 
-    // Поля
-    const newLinkInput = document.getElementById('newLinkInput');
-    const readLinkResult = document.getElementById('readLinkResult');
-    const controlDeviceName = document.getElementById('controlDeviceName');
-    const controlDeviceDesc = document.getElementById('controlDeviceDesc');
+  const newLinkInput = $('newLinkInput');
+  const readLinkResult = $('readLinkResult');
+  const controlDeviceName = $('controlDeviceName');
+  const controlDeviceDesc = $('controlDeviceDesc');
 
-    // ---------- Вспомогательные функции ----------
-    function openOverlay(overlay) {
-      overlay.classList.add('active');
+  const addStatus = $('addStatus');
+  const writeStatus = $('writeStatus');
+  const readStatus = $('readStatus');
+
+  const addWarnBox = $('addWarnBox');
+  const writeWarnBox = $('writeWarnBox');
+  const readWarnBox = $('readWarnBox');
+
+  // ===================== Утилиты =====================
+  function openOverlay(el) { el.classList.add('active'); }
+  function closeOverlay(el) { el.classList.remove('active'); }
+  function closeAllOverlays() {
+    [variantOverlay, nfcAddOverlay, deviceControlOverlay, changeLinkOverlay, readLinkOverlay]
+      .forEach(o => o.classList.remove('active'));
+  }
+
+  function setStatus(el, text, type) {
+    el.textContent = text;
+    el.classList.remove('error', 'success');
+    if (type) el.classList.add(type);
+  }
+
+  // Инициализация: показать предупреждение если нет Web NFC
+  function initCapabilities() {
+    if (hasWebNFC) {
+      modeBadge.textContent = 'NFC · реальный';
+      modeBadge.classList.add('live');
+    } else {
+      modeBadge.textContent = 'NFC · демо';
+      modeBadge.classList.add('demo');
+      addWarnBox.classList.remove('hidden');
+      writeWarnBox.classList.remove('hidden');
+      readWarnBox.classList.remove('hidden');
+      simulateNfcAddBtn.classList.remove('hidden');
+      simulateReadBtn.classList.remove('hidden');
     }
+  }
 
-    function closeOverlay(overlay) {
-      overlay.classList.remove('active');
+  // ===================== Рендер устройств =====================
+  function renderDevices() {
+    if (devices.length === 0) {
+      devicesContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px 0 20px; color: #aaa; font-size: 15px;">
+          Нет добавленных устройств
+        </div>`;
+      return;
     }
-
-    function closeAllOverlays() {
-      variantOverlay.classList.remove('active');
-      nfcAddOverlay.classList.remove('active');
-      deviceControlOverlay.classList.remove('active');
-      changeLinkOverlay.classList.remove('active');
-      readLinkOverlay.classList.remove('active');
-    }
-
-    // Отрисовка списка устройств
-    function renderDevices() {
-      if (devices.length === 0) {
-        devicesContainer.innerHTML = `
-          <div style="text-align: center; padding: 40px 0 20px; color: #aaa; font-size: 15px;">
-            Нет добавленных устройств
-          </div>
-        `;
-        return;
-      }
-
-      let html = '';
-      devices.forEach(device => {
-        html += `
-          <div class="device-card" data-device-id="${device.id}">
-            <div class="device-info">
-              <div class="device-icon">📡</div>
-              <div>
-                <div class="device-name">${device.name}</div>
-                <div class="device-tag">${device.variant} · ${device.link ? 'ссылка установлена' : 'ссылка не задана'}</div>
-              </div>
+    let html = '';
+    devices.forEach(device => {
+      const linkInfo = device.link ? '🔗 ' + device.link : 'ссылка не задана';
+      html += `
+        <div class="device-card" data-device-id="${device.id}">
+          <div class="device-info">
+            <div class="device-icon">📡</div>
+            <div>
+              <div class="device-name">${device.name}</div>
+              <div class="device-tag">${device.variant} · ${linkInfo}</div>
             </div>
-            <div class="chevron">›</div>
           </div>
-        `;
-      });
-      devicesContainer.innerHTML = html;
-
-      // Навешиваем обработчики на карточки
-      document.querySelectorAll('.device-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-          const id = card.dataset.deviceId;
-          openDeviceControl(id);
-        });
-      });
-    }
-
-    // Открыть управление устройством
-    function openDeviceControl(deviceId) {
-      const device = devices.find(d => d.id === deviceId);
-      if (!device) return;
-      currentDeviceId = deviceId;
-      controlDeviceName.textContent = device.name;
-      controlDeviceDesc.textContent = `${device.variant} · ${device.link ? 'ссылка: ' + device.link : 'ссылка не задана'}`;
-      openOverlay(deviceControlOverlay);
-    }
-
-    // ---------- Обработчики ----------
-
-    // Добавление устройства
-    addDeviceBtn.addEventListener('click', () => {
-      openOverlay(variantOverlay);
+          <div class="chevron">›</div>
+        </div>`;
     });
+    devicesContainer.innerHTML = html;
+    document.querySelectorAll('.device-card').forEach(card => {
+      card.addEventListener('click', () => openDeviceControl(card.dataset.deviceId));
+    });
+  }
 
-    // Закрыть выбор варианта
-    closeVariantBtn.addEventListener('click', () => {
+  function openDeviceControl(deviceId) {
+    const device = devices.find(d => d.id === deviceId);
+    if (!device) return;
+    currentDeviceId = deviceId;
+    controlDeviceName.textContent = device.name;
+    controlDeviceDesc.textContent = device.variant + ' · ' +
+      (device.link ? 'ссылка: ' + device.link : 'ссылка не задана');
+    openOverlay(deviceControlOverlay);
+  }
+
+  // ===================== Web NFC: реальное чтение =====================
+  async function startNfcRead(onReading, onError) {
+    if (!hasWebNFC) { onError(new Error('Web NFC не поддерживается')); return; }
+    try {
+      ndefAbortController = new AbortController();
+      ndefReader = new NDEFReader();
+      await ndefReader.scan({ signal: ndefAbortController.signal });
+      ndefReader.onreadingerror = () => onError(new Error('Ошибка чтения метки'));
+      ndefReader.onreading = (event) => onReading(event);
+    } catch (err) {
+      onError(err);
+    }
+  }
+
+  function stopNfcRead() {
+    if (ndefAbortController) {
+      try { ndefAbortController.abort(); } catch (e) {}
+      ndefAbortController = null;
+    }
+    ndefReader = null;
+  }
+
+  // Извлечь ссылку из NDEF-сообщения
+  function extractUrlFromEvent(event) {
+    const message = event.message;
+    if (!message || !message.records) return null;
+    for (const record of message.records) {
+      if (record.recordType === 'url') {
+        const decoder = new TextDecoder(record.encoding || 'utf-8');
+        return decoder.decode(record.data);
+      }
+      if (record.recordType === 'text') {
+        const decoder = new TextDecoder(record.encoding || 'utf-8');
+        const text = decoder.decode(record.data);
+        if (/^https?:\/\//i.test(text)) return text;
+      }
+    }
+    return null;
+  }
+
+  // ===================== Web NFC: реальная запись =====================
+  async function writeNfcUrl(url) {
+    if (!hasWebNFC) throw new Error('Web NFC не поддерживается');
+    const writer = new NDEFReader();
+    await writer.write({
+      records: [{ recordType: 'url', data: url }]
+    });
+  }
+
+  // ===================== Обработчики: добавление =====================
+  addDeviceBtn.addEventListener('click', () => openOverlay(variantOverlay));
+  closeVariantBtn.addEventListener('click', () => closeOverlay(variantOverlay));
+
+  document.querySelectorAll('.variant-item').forEach(item => {
+    item.addEventListener('click', async () => {
       closeOverlay(variantOverlay);
-    });
+      setStatus(addStatus, 'Ожидание метки...', null);
 
-    // Выбор варианта "Eliaphan Smart NFC"
-    document.querySelectorAll('.variant-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const variant = item.dataset.variant; // 'eliaphan'
-        closeOverlay(variantOverlay);
-        // Открыть NFC верификацию для добавления
+      if (!hasWebNFC) {
+        // Демо-режим — ждём кнопку "Симулировать"
         openOverlay(nfcAddOverlay);
-      });
-    });
-
-    // Отмена NFC добавления
-    cancelNfcAddBtn.addEventListener('click', () => {
-      closeOverlay(nfcAddOverlay);
-    });
-
-    // Симуляция "найдена метка" при добавлении
-    simulateNfcAddBtn.addEventListener('click', () => {
-      // Генерируем ID
-      const newId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-      const newDevice = {
-        id: newId,
-        name: 'Eliaphan Smart NFC',
-        variant: 'метка 1',
-        link: '' // изначально ссылка не задана
-      };
-      devices.push(newDevice);
-      renderDevices();
-      closeOverlay(nfcAddOverlay);
-      // Можно сразу открыть управление? По желанию. Оставим главный экран.
-    });
-
-    // Закрыть управление устройством
-    closeControlBtn.addEventListener('click', () => {
-      closeOverlay(deviceControlOverlay);
-      currentDeviceId = null;
-    });
-
-    // Изменить ссылку
-    changeLinkBtn.addEventListener('click', () => {
-      closeOverlay(deviceControlOverlay);
-      // Очистим поле ввода и подставим текущую ссылку, если есть
-      const device = devices.find(d => d.id === currentDeviceId);
-      if (device && device.link) {
-        newLinkInput.value = device.link;
-      } else {
-        newLinkInput.value = 'https://';
-      }
-      openOverlay(changeLinkOverlay);
-    });
-
-    // Отмена изменения ссылки
-    cancelChangeLinkBtn.addEventListener('click', () => {
-      closeOverlay(changeLinkOverlay);
-      // Возвращаемся к управлению? Можно открыть заново
-      if (currentDeviceId) {
-        openDeviceControl(currentDeviceId);
-      }
-    });
-
-    // Запись ссылки (NFC)
-    writeLinkBtn.addEventListener('click', () => {
-      const newLink = newLinkInput.value.trim();
-      if (!newLink) {
-        alert('Введите ссылку');
         return;
       }
-      // Сохраняем pendingLink
-      pendingLink = newLink;
-      // Симулируем запись: сразу применяем
-      const device = devices.find(d => d.id === currentDeviceId);
-      if (device) {
-        device.link = newLink;
-        // Обновляем описание в управлении
-        controlDeviceDesc.textContent = `${device.variant} · ссылка: ${device.link}`;
-        renderDevices();
-      }
-      closeOverlay(changeLinkOverlay);
-      // Возвращаемся к управлению
-      if (currentDeviceId) {
-        openDeviceControl(currentDeviceId);
-      } else {
-        closeAllOverlays();
-      }
-    });
 
-    // Чтение ссылки
-    readLinkBtn.addEventListener('click', () => {
-      closeOverlay(deviceControlOverlay);
-      // Сбросим результат
-      readLinkResult.classList.add('hidden');
-      readLinkResult.textContent = '';
-      openOverlay(readLinkOverlay);
-    });
-
-    // Отмена/закрытие чтения
-    cancelReadLinkBtn.addEventListener('click', () => {
-      closeOverlay(readLinkOverlay);
-      if (currentDeviceId) {
-        openDeviceControl(currentDeviceId);
+      // Реальный Web NFC — Chrome спросит разрешение здесь
+      openOverlay(nfcAddOverlay);
+      try {
+        await startNfcRead(
+          (event) => {
+            // Успешно считали — добавляем устройство
+            const url = extractUrlFromEvent(event) || '';
+            const newId = 'device_' + Date.now();
+            devices.push({
+              id: newId,
+              name: 'Eliaphan Smart NFC',
+              variant: 'метка 1',
+              link: url
+            });
+            setStatus(addStatus, '✅ Метка найдена!', 'success');
+            stopNfcRead();
+            setTimeout(() => {
+              renderDevices();
+              closeOverlay(nfcAddOverlay);
+            }, 700);
+          },
+          (err) => {
+            setStatus(addStatus, 'Ошибка: ' + err.message, 'error');
+          }
+        );
+        setStatus(addStatus, 'Поднесите телефон к метке...', null);
+      } catch (err) {
+        setStatus(addStatus, 'Ошибка: ' + err.message, 'error');
       }
     });
+  });
 
-    // Симуляция чтения метки
-    simulateReadBtn.addEventListener('click', () => {
-      const device = devices.find(d => d.id === currentDeviceId);
-      let linkText = 'Ссылка не найдена';
-      if (device && device.link) {
-        linkText = device.link;
-      } else if (device) {
-        linkText = 'Ссылка не записана на метку';
-      }
-      readLinkResult.textContent = '🔗 ' + linkText;
-      readLinkResult.classList.remove('hidden');
-      // Через 1.5 секунды можно закрыть? Оставим открытым, пользователь закроет.
-    });
+  cancelNfcAddBtn.addEventListener('click', () => {
+    stopNfcRead();
+    closeOverlay(nfcAddOverlay);
+  });
 
-    // Закрытие оверлеев по клику на фон (вне модального окна)
-    document.querySelectorAll('.overlay').forEach(overlay => {
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-          // Не закрываем, если это критично? Закроем все, кроме, может, nfc? Для простоты закроем.
-          // Но лучше закрывать только по кнопке, чтобы не сбить. Оставим без закрытия по фону, чтобы избежать случайностей.
-        }
-      });
-    });
-
-    // Инициализация: отрисовка
+  simulateNfcAddBtn.addEventListener('click', () => {
+    const newId = 'device_' + Date.now();
+    devices.push({ id: newId, name: 'Eliaphan Smart NFC', variant: 'метка 1', link: '' });
     renderDevices();
+    closeOverlay(nfcAddOverlay);
+  });
 
-    // Небольшой хак: для удобства, если пользователь нажмёт "Найдена метка" без выбора варианта – не случится.
-    // Всё ок.
+  // ===================== Обработчики: управление =====================
+  closeControlBtn.addEventListener('click', () => {
+    closeOverlay(deviceControlOverlay);
+    currentDeviceId = null;
+  });
 
-  })();
+  changeLinkBtn.addEventListener('click', () => {
+    closeOverlay(deviceControlOverlay);
+    const device = devices.find(d => d.id === currentDeviceId);
+    newLinkInput.value = (device && device.link) ? device.link : 'https://';
+    setStatus(writeStatus, 'Приложите телефон к метке', null);
+    openOverlay(changeLinkOverlay);
+  });
+
+  cancelChangeLinkBtn.addEventListener('click', () => {
+    stopNfcRead();
+    closeOverlay(changeLinkOverlay);
+    if (currentDeviceId) openDeviceControl(currentDeviceId);
+  });
+
+  writeLinkBtn.addEventListener('click', async () => {
+    const newLink = newLinkInput.value.trim();
+    if (!newLink) { alert('Введите ссылку'); return; }
+
+    const device = devices.find(d => d.id === currentDeviceId);
+    if (!device) return;
+
+    // Демо-режим
+    if (!hasWebNFC) {
+      setStatus(writeStatus, 'Запись (демо)...', null);
+      setTimeout(() => {
+        device.link = newLink;
+        setStatus(writeStatus, '✅ Ссылка записана', 'success');
+        renderDevices();
+        setTimeout(() => {
+          closeOverlay(changeLinkOverlay);
+          openDeviceControl(currentDeviceId);
+        }, 600);
+      }, 800);
+      return;
+    }
+
+    // Реальный Web NFC — записываем
+    try {
+      setStatus(writeStatus, 'Поднесите телефон к метке для записи...', null);
+      await writeNfcUrl(newLink);
+      device.link = newLink;
+      setStatus(writeStatus, '✅ Ссылка записана на метку', 'success');
+      renderDevices();
+      setTimeout(() => {
+        closeOverlay(changeLinkOverlay);
+        openDeviceControl(currentDeviceId);
+      }, 900);
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        setStatus(writeStatus, 'Запись отменена', null);
+      } else if (err.name === 'NotAllowedError') {
+        setStatus(writeStatus, 'Разрешение на NFC отклонено', 'error');
+      } else {
+        setStatus(writeStatus, 'Ошибка: ' + err.message, 'error');
+      }
+    }
+  });
+
+  // ===================== Обработчики: чтение =====================
+  readLinkBtn.addEventListener('click', async () => {
+    closeOverlay(deviceControlOverlay);
+    readLinkResult.classList.add('hidden');
+    readLinkResult.textContent = '';
+    setStatus(readStatus, 'Ожидание метки...', null);
+
+    if (!hasWebNFC) {
+      openOverlay(readLinkOverlay);
+      return;
+    }
+
+    openOverlay(readLinkOverlay);
+    try {
+      await startNfcRead(
+        (event) => {
+          const url = extractUrlFromEvent(event);
+          const device = devices.find(d => d.id === currentDeviceId);
+          if (url) {
+            if (device) { device.link = url; renderDevices(); }
+            readLinkResult.textContent = '🔗 ' + url;
+            setStatus(readStatus, '✅ Метка прочитана', 'success');
+          } else {
+            readLinkResult.textContent = '⚠️ Ссылка на метке не найдена';
+            setStatus(readStatus, 'Метка прочитана, но ссылка не найдена', null);
+          }
+          readLinkResult.classList.remove('hidden');
+          stopNfcRead();
+        },
+        (err) => setStatus(readStatus, 'Ошибка: ' + err.message, 'error')
+      );
+      setStatus(readStatus, 'Поднесите телефон к метке...', null);
+    } catch (err) {
+      setStatus(readStatus, 'Ошибка: ' + err.message, 'error');
+    }
+  });
+
+  cancelReadLinkBtn.addEventListener('click', () => {
+    stopNfcRead();
+    closeOverlay(readLinkOverlay);
+    if (currentDeviceId) openDeviceControl(currentDeviceId);
+  });
+
+  simulateReadBtn.addEventListener('click', () => {
+    const device = devices.find(d => d.id === currentDeviceId);
+    const link = (device && device.link) ? device.link : 'Ссылка не записана на метку';
+    readLinkResult.textContent = '🔗 ' + link;
+    readLinkResult.classList.remove('hidden');
+    setStatus(readStatus, '✅ Метка прочитана (демо)', 'success');
+  });
+
+  // ===================== Инициализация =====================
+  initCapabilities();
+  renderDevices();
+
+  // Если пользователь ушёл со страницы — остановим сканирование
+  window.addEventListener('pagehide', stopNfcRead);
+})();
 </script>
 </body>
 </html>
