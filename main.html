@@ -4,14 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Умный бизнес · NFC</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    /* ============================================================
+       ПОЛНОСТЬЮ ЛОКАЛЬНО:
+       • Никаких внешних шрифтов, CDN, аналитики, трекинга.
+       • Никаких fetch / XHR / WebSocket / sendBeacon.
+       • Все данные — только в localStorage этого браузера.
+       ============================================================ */
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'TikTok Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family:
+        -apple-system, BlinkMacSystemFont,
+        'Segoe UI Variable', 'Segoe UI',
+        Roboto,
+        'Helvetica Neue', Helvetica, Arial,
+        'Noto Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      letter-spacing: -0.01em;
       background: #f5f5f5;
       display: flex;
       justify-content: center;
@@ -67,30 +79,39 @@
       background: #fafafa;
       border: 1.5px solid #ddd;
       border-radius: 24px;
-      padding: 20px 18px;
-      margin-top: 20px;
+      padding: 18px;
+      margin-top: 16px;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
     }
     .device-card:active { background: #f0f0f0; border-color: #aaa; }
-    .device-info { display: flex; align-items: center; gap: 14px; }
+    .device-info { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; }
     .device-icon {
       background: #111; width: 44px; height: 44px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 22px;
+      color: white; font-size: 22px; flex-shrink: 0;
     }
-    .device-name { font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
-    .device-tag { font-size: 12px; color: #666; margin-top: 2px; word-break: break-all; }
-    .chevron { font-size: 22px; color: #aaa; font-weight: 300; }
+    .device-text { min-width: 0; flex: 1; }
+    .device-name {
+      font-weight: 600; font-size: 16px; letter-spacing: -0.01em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .device-tag {
+      font-size: 12px; color: #666; margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .chevron { font-size: 22px; color: #aaa; font-weight: 300; flex-shrink: 0; }
 
     .overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -134,13 +155,140 @@
     .variant-item:active { background: #ececec; border-color: #aaa; }
     .variant-item span { color: #888; font-weight: 400; }
 
-    .nfc-pulse { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0; }
-    .nfc-icon { font-size: 64px; margin-bottom: 16px; animation: pulse 2s infinite; }
-    @keyframes pulse {
-      0% { opacity: 0.6; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.05); }
-      100% { opacity: 0.6; transform: scale(1); }
+    /* ============================================================
+       WATER DROP NFC ANIMATION
+       ------------------------------------------------------------
+       • Концентрические "капли"/волны расходящиеся от точки касания.
+       • Центральный значок NFC мягко пульсирует.
+       • Всё на CSS-анимациях, GPU-accelerated, никаких картинок.
+       ============================================================ */
+
+    .nfc-stage {
+      position: relative;
+      width: 100%;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-radius: 20px;
+      background: radial-gradient(circle at 50% 50%, #fafafa 0%, #f0f0f0 100%);
+      margin: 8px 0;
     }
+
+    /* Точка "касания" — маленькая тёмная капля в центре */
+    .nfc-drop-center {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #333 0%, #000 70%);
+      box-shadow:
+        0 0 0 6px rgba(0, 0, 0, 0.06),
+        0 8px 24px rgba(0, 0, 0, 0.25),
+        inset 0 -3px 6px rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 30px;
+      z-index: 5;
+      animation: dropBreathe 2.4s ease-in-out infinite;
+    }
+
+    @keyframes dropBreathe {
+      0%, 100% { transform: scale(1);    box-shadow: 0 0 0 6px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.25), inset 0 -3px 6px rgba(255,255,255,0.15); }
+      50%      { transform: scale(1.08); box-shadow: 0 0 0 12px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.30), inset 0 -3px 6px rgba(255,255,255,0.15); }
+    }
+
+    /* Общий контейнер для волн */
+    .nfc-ripples {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    /* Каждая волна — расходящееся кольцо "капли" */
+    .nfc-ripple {
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 0, 0, 0.35);
+      opacity: 0;
+      transform: scale(1);
+      animation: rippleOut 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    }
+    .nfc-ripple:nth-child(1) { animation-delay: 0s;    border-color: rgba(0, 0, 0, 0.45); }
+    .nfc-ripple:nth-child(2) { animation-delay: 0.6s;  border-color: rgba(0, 0, 0, 0.30); }
+    .nfc-ripple:nth-child(3) { animation-delay: 1.2s;  border-color: rgba(0, 0, 0, 0.20); }
+    .nfc-ripple:nth-child(4) { animation-delay: 1.8s;  border-color: rgba(0, 0, 0, 0.12); }
+
+    @keyframes rippleOut {
+      0% {
+        opacity: 0;
+        transform: scale(0.6);
+        border-width: 3px;
+      }
+      15% {
+        opacity: 0.9;
+      }
+      100% {
+        opacity: 0;
+        transform: scale(2.6);
+        border-width: 1px;
+      }
+    }
+
+    /* Мягкое "дыхание" фона внутри сцены */
+    .nfc-stage::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.04) 0%, transparent 60%);
+      animation: haloBreathe 2.4s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes haloBreathe {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50%      { opacity: 1;   transform: scale(1.1); }
+    }
+
+    /* Состояние "успех" — волны становятся зелёными и замирают */
+    .nfc-stage.success .nfc-ripple {
+      animation: rippleSuccess 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      border-color: rgba(0, 160, 60, 0.6) !important;
+    }
+    .nfc-stage.success .nfc-drop-center {
+      animation: dropSuccess 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      background: radial-gradient(circle at 40% 35%, #2ecc71 0%, #0a8f3c 70%);
+    }
+    @keyframes rippleSuccess {
+      0%   { opacity: 0.9; transform: scale(1);   border-width: 3px; }
+      100% { opacity: 0;   transform: scale(3.2); border-width: 1px; }
+    }
+    @keyframes dropSuccess {
+      0%   { transform: scale(1.08); }
+      40%  { transform: scale(1.35); }
+      100% { transform: scale(1); }
+    }
+
+    /* Состояние "ошибка" — красные волны */
+    .nfc-stage.error .nfc-ripple {
+      animation: rippleError 0.7s ease-out forwards;
+      border-color: rgba(200, 0, 0, 0.6) !important;
+    }
+    .nfc-stage.error .nfc-drop-center {
+      background: radial-gradient(circle at 40% 35%, #ff5a5a 0%, #a00000 70%);
+    }
+    @keyframes rippleError {
+      0%   { opacity: 0.9; transform: scale(1); }
+      100% { opacity: 0;   transform: scale(2); }
+    }
+
     .nfc-hint { font-size: 15px; color: #666; text-align: center; margin-top: 8px; }
     .nfc-hint.error { color: #c00; font-weight: 500; }
     .nfc-hint.success { color: #080; font-weight: 500; }
@@ -170,9 +318,19 @@
     }
     input:focus { border-color: #111; }
 
+    .label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #555;
+      margin-bottom: 6px;
+      display: block;
+      letter-spacing: -0.01em;
+    }
+
     .hidden { display: none !important; }
     .flex-col { display: flex; flex-direction: column; }
     .gap-8 { gap: 8px; }
+    .gap-12 { gap: 12px; }
     .mt-16 { margin-top: 16px; }
 
     .warning-box {
@@ -184,6 +342,17 @@
       color: #7a5c00;
       margin-bottom: 16px;
       line-height: 1.4;
+    }
+
+    .info-box {
+      background: #f0f7ff;
+      border: 1px solid #cfe3ff;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #1f4d8a;
+      margin-bottom: 16px;
+      line-height: 1.5;
     }
 
     .badge {
@@ -199,21 +368,49 @@
     }
     .badge.live { background: #d4edda; color: #155724; }
     .badge.demo { background: #fff3cd; color: #856404; }
+    .badge.local { background: #e2e3f3; color: #333d8a; }
+
+    .danger-btn {
+      background: transparent;
+      color: #c00;
+      border: 1.5px solid #f0c0c0;
+    }
+    .danger-btn:active { background: #fff0f0; }
+
+    .footer-note {
+      margin-top: auto;
+      padding-top: 20px;
+      font-size: 11px;
+      color: #aaa;
+      text-align: center;
+      line-height: 1.5;
+    }
 
     ::-webkit-scrollbar { width: 0; background: transparent; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .nfc-ripple,
+      .nfc-drop-center,
+      .nfc-stage::before { animation: none !important; }
+    }
   </style>
 </head>
 <body>
 <div class="app">
   <div id="homeScreen">
-    <h1>Умный бизнес <span class="badge" id="modeBadge">NFC</span></h1>
-    <div class="subhead">Управление NFC-метками</div>
+    <h1>Умный бизнес <span class="badge local" id="localBadge">локально</span> <span class="badge" id="modeBadge">NFC</span></h1>
+    <div class="subhead">Управление NFC-метками · данные хранятся только на этом устройстве</div>
 
     <div id="devicesContainer"></div>
 
     <button class="btn" id="addDeviceBtn" style="margin-top: 20px;">
       <span class="btn-icon">＋</span> Добавить устройство
     </button>
+
+    <div class="footer-note">
+      Все данные хранятся в localStorage вашего браузера.<br>
+      Никакие данные не отправляются на серверы. Приложение работает полностью офлайн.
+    </div>
   </div>
 </div>
 
@@ -238,13 +435,22 @@
   <div class="modal">
     <h2>NFC верификация</h2>
     <p>Приложите телефон к метке Eliaphan</p>
+    <div class="info-box">
+      🔒 Chrome запросит разрешение на доступ к NFC. Данные с метки обрабатываются только на вашем устройстве и сохраняются локально.
+    </div>
     <div class="warning-box hidden" id="addWarnBox">
-      Ваш браузер не поддерживает Web NFC. Будет использована симуляция.
+      Ваш браузер не поддерживает Web NFC. Будет использована симуляция (только для демонстрации).
     </div>
-    <div class="nfc-pulse">
-      <div class="nfc-icon">📱</div>
-      <div class="nfc-hint" id="addStatus">Ожидание метки...</div>
+    <div class="nfc-stage" id="addStage">
+      <div class="nfc-ripples">
+        <div class="nfc-ripple"></div>
+        <div class="nfc-ripple"></div>
+        <div class="nfc-ripple"></div>
+        <div class="nfc-ripple"></div>
+      </div>
+      <div class="nfc-drop-center">📱</div>
     </div>
+    <div class="nfc-hint" id="addStatus">Ожидание метки...</div>
     <div class="modal-actions">
       <button class="btn btn-outline" id="cancelNfcAddBtn">Отмена</button>
       <button class="btn hidden" id="simulateNfcAddBtn">Симулировать метку</button>
@@ -258,11 +464,27 @@
     <h2 id="controlDeviceName">Eliaphan Smart NFC</h2>
     <p id="controlDeviceDesc">метка 1</p>
     <div class="flex-col gap-8 mt-16">
+      <button class="btn btn-outline" id="renameDeviceBtn">✎ Переименовать метку</button>
       <button class="btn btn-outline" id="changeLinkBtn">Изменить ссылку</button>
       <button class="btn btn-outline" id="readLinkBtn">Прочитать ссылку</button>
+      <button class="btn danger-btn" id="deleteDeviceBtn">Удалить метку</button>
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" id="closeControlBtn">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Переименование -->
+<div class="overlay" id="renameOverlay">
+  <div class="modal">
+    <h2>Переименовать метку</h2>
+    <p>Введите новое название для этой метки</p>
+    <label class="label" for="renameInput">Название</label>
+    <input type="text" id="renameInput" placeholder="Например: Витрина №1" maxlength="40">
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="cancelRenameBtn">Отмена</button>
+      <button class="btn" id="saveRenameBtn">Сохранить</button>
     </div>
   </div>
 </div>
@@ -272,14 +494,24 @@
   <div class="modal">
     <h2>Изменить ссылку</h2>
     <p>Введите новую ссылку и приложите метку для записи</p>
+    <label class="label" for="newLinkInput">Ссылка</label>
     <input type="url" id="newLinkInput" placeholder="https://example.com" value="https://">
+    <div class="info-box">
+      🔒 Ссылка записывается прямо на NFC-метку. Она не отправляется никуда, кроме самой метки.
+    </div>
     <div class="warning-box hidden" id="writeWarnBox">
       Web NFC не поддерживается. Будет использована симуляция записи.
     </div>
-    <div class="nfc-pulse" style="padding: 8px 0;">
-      <div class="nfc-icon" style="font-size: 48px;">📱</div>
-      <div class="nfc-hint" id="writeStatus">Приложите телефон к метке</div>
+    <div class="nfc-stage" id="writeStage">
+      <div class="nfc-ripples">
+        <div class="nfc-ripple"></div>
+        <div class="nfc-ripple"></div>
+        <div class="nfc-ripple"></div>
+        <div class="nfc-ripple"></div>
+      </div>
+      <div class="nfc-drop-center">📱</div>
     </div>
+    <div class="nfc-hint" id="writeStatus">Приложите телефон к метке</div>
     <div class="modal-actions">
       <button class="btn btn-outline" id="cancelChangeLinkBtn">Отмена</button>
       <button class="btn" id="writeLinkBtn">Записать</button>
@@ -295,10 +527,16 @@
     <div class="warning-box hidden" id="readWarnBox">
       Web NFC не поддерживается. Будет использована симуляция чтения.
     </div>
-    <div class="nfc-pulse">
-      <div class="nfc-icon">📱</div>
-      <div class="nfc-hint" id="readStatus">Ожидание метки...</div>
+    <div class="nfc-stage" id="readStage">
+      <div class="nfc-ripples">
+        <div class="nfc-ripple"></div>
+        <div class="nfc-ripple"></div>
+        <div class="nfc-ripple"></div>
+        <div class="nfc-ripple"></div>
+      </div>
+      <div class="nfc-drop-center">📱</div>
     </div>
+    <div class="nfc-hint" id="readStatus">Ожидание метки...</div>
     <div class="link-preview hidden" id="readLinkResult"></div>
     <div class="modal-actions">
       <button class="btn btn-outline" id="cancelReadLinkBtn">Закрыть</button>
@@ -309,6 +547,20 @@
 
 <script>
 (function () {
+  'use strict';
+
+  // ================================================================
+  //  ПОЛИТИКА ПОЛНОЙ ЛОКАЛЬНОСТИ
+  //  ----------------------------------------------------------------
+  //  • НЕТ внешних запросов: ни шрифтов, ни CDN, ни аналитики.
+  //  • НЕТ fetch / XMLHttpRequest / WebSocket / sendBeacon / img-ping.
+  //  • Все данные хранятся ТОЛЬКО в localStorage этого браузера.
+  //  • Web NFC работает напрямую с железом телефона.
+  //  • Приложение функционирует полностью офлайн.
+  // ================================================================
+
+  const STORAGE_KEY = 'smart_business_nfc_devices_v1';
+
   // ===================== Состояние =====================
   let devices = [];
   let currentDeviceId = null;
@@ -317,6 +569,35 @@
   const hasWebNFC = 'NDEFReader' in window;
   let ndefReader = null;
   let ndefAbortController = null;
+
+  // ===================== localStorage =====================
+  function loadFromStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter(d => d && typeof d === 'object' && typeof d.id === 'string')
+        .map(d => ({
+          id: String(d.id),
+          name: String(d.name || 'Eliaphan Smart NFC').slice(0, 60),
+          variant: String(d.variant || 'метка 1').slice(0, 30),
+          link: String(d.link || '').slice(0, 2000)
+        }));
+    } catch (e) {
+      console.warn('Не удалось загрузить данные из localStorage:', e);
+      return [];
+    }
+  }
+
+  function saveToStorage() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
+    } catch (e) {
+      console.warn('Не удалось сохранить данные в localStorage:', e);
+    }
+  }
 
   // ===================== DOM =====================
   const $ = id => document.getElementById(id);
@@ -328,6 +609,7 @@
   const variantOverlay = $('variantOverlay');
   const nfcAddOverlay = $('nfcAddOverlay');
   const deviceControlOverlay = $('deviceControlOverlay');
+  const renameOverlay = $('renameOverlay');
   const changeLinkOverlay = $('changeLinkOverlay');
   const readLinkOverlay = $('readLinkOverlay');
 
@@ -335,13 +617,18 @@
   const cancelNfcAddBtn = $('cancelNfcAddBtn');
   const simulateNfcAddBtn = $('simulateNfcAddBtn');
   const closeControlBtn = $('closeControlBtn');
+  const renameDeviceBtn = $('renameDeviceBtn');
   const changeLinkBtn = $('changeLinkBtn');
   const readLinkBtn = $('readLinkBtn');
+  const deleteDeviceBtn = $('deleteDeviceBtn');
+  const cancelRenameBtn = $('cancelRenameBtn');
+  const saveRenameBtn = $('saveRenameBtn');
   const cancelChangeLinkBtn = $('cancelChangeLinkBtn');
   const writeLinkBtn = $('writeLinkBtn');
   const cancelReadLinkBtn = $('cancelReadLinkBtn');
   const simulateReadBtn = $('simulateReadBtn');
 
+  const renameInput = $('renameInput');
   const newLinkInput = $('newLinkInput');
   const readLinkResult = $('readLinkResult');
   const controlDeviceName = $('controlDeviceName');
@@ -355,13 +642,14 @@
   const writeWarnBox = $('writeWarnBox');
   const readWarnBox = $('readWarnBox');
 
+  // NFC-сцены с анимацией
+  const addStage = $('addStage');
+  const writeStage = $('writeStage');
+  const readStage = $('readStage');
+
   // ===================== Утилиты =====================
   function openOverlay(el) { el.classList.add('active'); }
   function closeOverlay(el) { el.classList.remove('active'); }
-  function closeAllOverlays() {
-    [variantOverlay, nfcAddOverlay, deviceControlOverlay, changeLinkOverlay, readLinkOverlay]
-      .forEach(o => o.classList.remove('active'));
-  }
 
   function setStatus(el, text, type) {
     el.textContent = text;
@@ -369,7 +657,28 @@
     if (type) el.classList.add(type);
   }
 
-  // Инициализация: показать предупреждение если нет Web NFC
+  // Переключение состояния NFC-сцены: idle / success / error
+  function setStageState(stage, state) {
+    if (!stage) return;
+    stage.classList.remove('success', 'error');
+    if (state === 'success') stage.classList.add('success');
+    if (state === 'error')   stage.classList.add('error');
+  }
+
+  function resetStage(stage) {
+    if (!stage) return;
+    stage.classList.remove('success', 'error');
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function initCapabilities() {
     if (hasWebNFC) {
       modeBadge.textContent = 'NFC · реальный';
@@ -385,7 +694,7 @@
     }
   }
 
-  // ===================== Рендер устройств =====================
+  // ===================== Рендер =====================
   function renderDevices() {
     if (devices.length === 0) {
       devicesContainer.innerHTML = `
@@ -396,14 +705,16 @@
     }
     let html = '';
     devices.forEach(device => {
-      const linkInfo = device.link ? '🔗 ' + device.link : 'ссылка не задана';
+      const linkInfo = device.link
+        ? '🔗 ' + escapeHtml(device.link)
+        : 'ссылка не задана';
       html += `
-        <div class="device-card" data-device-id="${device.id}">
+        <div class="device-card" data-device-id="${escapeHtml(device.id)}">
           <div class="device-info">
             <div class="device-icon">📡</div>
-            <div>
-              <div class="device-name">${device.name}</div>
-              <div class="device-tag">${device.variant} · ${linkInfo}</div>
+            <div class="device-text">
+              <div class="device-name">${escapeHtml(device.name)}</div>
+              <div class="device-tag">${escapeHtml(device.variant)} · ${linkInfo}</div>
             </div>
           </div>
           <div class="chevron">›</div>
@@ -425,7 +736,7 @@
     openOverlay(deviceControlOverlay);
   }
 
-  // ===================== Web NFC: реальное чтение =====================
+  // ===================== Web NFC: чтение =====================
   async function startNfcRead(onReading, onError) {
     if (!hasWebNFC) { onError(new Error('Web NFC не поддерживается')); return; }
     try {
@@ -447,7 +758,6 @@
     ndefReader = null;
   }
 
-  // Извлечь ссылку из NDEF-сообщения
   function extractUrlFromEvent(event) {
     const message = event.message;
     if (!message || !message.records) return null;
@@ -465,7 +775,6 @@
     return null;
   }
 
-  // ===================== Web NFC: реальная запись =====================
   async function writeNfcUrl(url) {
     if (!hasWebNFC) throw new Error('Web NFC не поддерживается');
     const writer = new NDEFReader();
@@ -474,48 +783,54 @@
     });
   }
 
-  // ===================== Обработчики: добавление =====================
+  // ===================== Добавление =====================
   addDeviceBtn.addEventListener('click', () => openOverlay(variantOverlay));
   closeVariantBtn.addEventListener('click', () => closeOverlay(variantOverlay));
 
   document.querySelectorAll('.variant-item').forEach(item => {
     item.addEventListener('click', async () => {
       closeOverlay(variantOverlay);
+      resetStage(addStage);
       setStatus(addStatus, 'Ожидание метки...', null);
 
       if (!hasWebNFC) {
-        // Демо-режим — ждём кнопку "Симулировать"
         openOverlay(nfcAddOverlay);
         return;
       }
 
-      // Реальный Web NFC — Chrome спросит разрешение здесь
       openOverlay(nfcAddOverlay);
       try {
         await startNfcRead(
           (event) => {
-            // Успешно считали — добавляем устройство
             const url = extractUrlFromEvent(event) || '';
-            const newId = 'device_' + Date.now();
+            const newId = 'device_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
             devices.push({
               id: newId,
               name: 'Eliaphan Smart NFC',
               variant: 'метка 1',
               link: url
             });
+            saveToStorage();
+
+            // 💧 Успех: волны становятся зелёными, затемнение капли
+            setStageState(addStage, 'success');
             setStatus(addStatus, '✅ Метка найдена!', 'success');
             stopNfcRead();
+
             setTimeout(() => {
               renderDevices();
               closeOverlay(nfcAddOverlay);
-            }, 700);
+              resetStage(addStage);
+            }, 900);
           },
           (err) => {
+            setStageState(addStage, 'error');
             setStatus(addStatus, 'Ошибка: ' + err.message, 'error');
           }
         );
         setStatus(addStatus, 'Поднесите телефон к метке...', null);
       } catch (err) {
+        setStageState(addStage, 'error');
         setStatus(addStatus, 'Ошибка: ' + err.message, 'error');
       }
     });
@@ -523,32 +838,74 @@
 
   cancelNfcAddBtn.addEventListener('click', () => {
     stopNfcRead();
+    resetStage(addStage);
     closeOverlay(nfcAddOverlay);
   });
 
   simulateNfcAddBtn.addEventListener('click', () => {
-    const newId = 'device_' + Date.now();
+    setStageState(addStage, 'success');
+    setStatus(addStatus, '✅ Метка найдена (демо)!', 'success');
+    const newId = 'device_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
     devices.push({ id: newId, name: 'Eliaphan Smart NFC', variant: 'метка 1', link: '' });
-    renderDevices();
-    closeOverlay(nfcAddOverlay);
+    saveToStorage();
+    setTimeout(() => {
+      renderDevices();
+      closeOverlay(nfcAddOverlay);
+      resetStage(addStage);
+    }, 900);
   });
 
-  // ===================== Обработчики: управление =====================
+  // ===================== Управление =====================
   closeControlBtn.addEventListener('click', () => {
     closeOverlay(deviceControlOverlay);
     currentDeviceId = null;
   });
 
+  // -------- Переименование --------
+  renameDeviceBtn.addEventListener('click', () => {
+    const device = devices.find(d => d.id === currentDeviceId);
+    if (!device) return;
+    closeOverlay(deviceControlOverlay);
+    renameInput.value = device.name;
+    openOverlay(renameOverlay);
+    setTimeout(() => renameInput.focus(), 100);
+  });
+
+  cancelRenameBtn.addEventListener('click', () => {
+    closeOverlay(renameOverlay);
+    if (currentDeviceId) openDeviceControl(currentDeviceId);
+  });
+
+  saveRenameBtn.addEventListener('click', () => {
+    const newName = renameInput.value.trim().slice(0, 40);
+    if (!newName) { renameInput.focus(); return; }
+    const device = devices.find(d => d.id === currentDeviceId);
+    if (device) {
+      device.name = newName;
+      saveToStorage();
+      renderDevices();
+    }
+    closeOverlay(renameOverlay);
+    if (currentDeviceId) openDeviceControl(currentDeviceId);
+  });
+
+  renameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveRenameBtn.click();
+  });
+
+  // -------- Изменить ссылку --------
   changeLinkBtn.addEventListener('click', () => {
     closeOverlay(deviceControlOverlay);
     const device = devices.find(d => d.id === currentDeviceId);
     newLinkInput.value = (device && device.link) ? device.link : 'https://';
+    resetStage(writeStage);
     setStatus(writeStatus, 'Приложите телефон к метке', null);
     openOverlay(changeLinkOverlay);
   });
 
   cancelChangeLinkBtn.addEventListener('click', () => {
     stopNfcRead();
+    resetStage(writeStage);
     closeOverlay(changeLinkOverlay);
     if (currentDeviceId) openDeviceControl(currentDeviceId);
   });
@@ -560,33 +917,38 @@
     const device = devices.find(d => d.id === currentDeviceId);
     if (!device) return;
 
-    // Демо-режим
     if (!hasWebNFC) {
       setStatus(writeStatus, 'Запись (демо)...', null);
       setTimeout(() => {
         device.link = newLink;
+        saveToStorage();
+        setStageState(writeStage, 'success');
         setStatus(writeStatus, '✅ Ссылка записана', 'success');
         renderDevices();
         setTimeout(() => {
           closeOverlay(changeLinkOverlay);
+          resetStage(writeStage);
           openDeviceControl(currentDeviceId);
-        }, 600);
+        }, 900);
       }, 800);
       return;
     }
 
-    // Реальный Web NFC — записываем
     try {
       setStatus(writeStatus, 'Поднесите телефон к метке для записи...', null);
       await writeNfcUrl(newLink);
       device.link = newLink;
+      saveToStorage();
+      setStageState(writeStage, 'success');
       setStatus(writeStatus, '✅ Ссылка записана на метку', 'success');
       renderDevices();
       setTimeout(() => {
         closeOverlay(changeLinkOverlay);
+        resetStage(writeStage);
         openDeviceControl(currentDeviceId);
       }, 900);
     } catch (err) {
+      setStageState(writeStage, 'error');
       if (err.name === 'AbortError') {
         setStatus(writeStatus, 'Запись отменена', null);
       } else if (err.name === 'NotAllowedError') {
@@ -597,11 +959,12 @@
     }
   });
 
-  // ===================== Обработчики: чтение =====================
+  // -------- Прочитать ссылку --------
   readLinkBtn.addEventListener('click', async () => {
     closeOverlay(deviceControlOverlay);
     readLinkResult.classList.add('hidden');
     readLinkResult.textContent = '';
+    resetStage(readStage);
     setStatus(readStatus, 'Ожидание метки...', null);
 
     if (!hasWebNFC) {
@@ -616,26 +979,37 @@
           const url = extractUrlFromEvent(event);
           const device = devices.find(d => d.id === currentDeviceId);
           if (url) {
-            if (device) { device.link = url; renderDevices(); }
+            if (device) {
+              device.link = url;
+              saveToStorage();
+              renderDevices();
+            }
             readLinkResult.textContent = '🔗 ' + url;
+            setStageState(readStage, 'success');
             setStatus(readStatus, '✅ Метка прочитана', 'success');
           } else {
             readLinkResult.textContent = '⚠️ Ссылка на метке не найдена';
+            setStageState(readStage, 'error');
             setStatus(readStatus, 'Метка прочитана, но ссылка не найдена', null);
           }
           readLinkResult.classList.remove('hidden');
           stopNfcRead();
         },
-        (err) => setStatus(readStatus, 'Ошибка: ' + err.message, 'error')
+        (err) => {
+          setStageState(readStage, 'error');
+          setStatus(readStatus, 'Ошибка: ' + err.message, 'error');
+        }
       );
       setStatus(readStatus, 'Поднесите телефон к метке...', null);
     } catch (err) {
+      setStageState(readStage, 'error');
       setStatus(readStatus, 'Ошибка: ' + err.message, 'error');
     }
   });
 
   cancelReadLinkBtn.addEventListener('click', () => {
     stopNfcRead();
+    resetStage(readStage);
     closeOverlay(readLinkOverlay);
     if (currentDeviceId) openDeviceControl(currentDeviceId);
   });
@@ -645,14 +1019,28 @@
     const link = (device && device.link) ? device.link : 'Ссылка не записана на метку';
     readLinkResult.textContent = '🔗 ' + link;
     readLinkResult.classList.remove('hidden');
+    setStageState(readStage, 'success');
     setStatus(readStatus, '✅ Метка прочитана (демо)', 'success');
   });
 
+  // -------- Удаление --------
+  deleteDeviceBtn.addEventListener('click', () => {
+    const device = devices.find(d => d.id === currentDeviceId);
+    if (!device) return;
+    const ok = confirm('Удалить метку «' + device.name + '»?\n\nЭто действие удалит её только из этого приложения. Данные на самой NFC-метке не затрагиваются.');
+    if (!ok) return;
+    devices = devices.filter(d => d.id !== currentDeviceId);
+    saveToStorage();
+    currentDeviceId = null;
+    renderDevices();
+    closeOverlay(deviceControlOverlay);
+  });
+
   // ===================== Инициализация =====================
+  devices = loadFromStorage();
   initCapabilities();
   renderDevices();
 
-  // Если пользователь ушёл со страницы — остановим сканирование
   window.addEventListener('pagehide', stopNfcRead);
 })();
 </script>
